@@ -1,3 +1,5 @@
+import hashlib
+
 from transaction import Transaction
 
 class Block:
@@ -12,5 +14,13 @@ class Block:
         self.epoch = epoch
         self.length = length
         self.transactions = transactions
-                
-                 
+
+    def calculate_hash(self) -> bytes:
+        h = hashlib.sha256()
+        h.update(str(self.previous_hash).encode('utf-8'))
+        h.update(str(self.epoch).encode('utf-8'))
+        h.update(str(self.length).encode('utf-8'))
+        for t in self.transactions:
+            h.update(str(t).encode('utf-8'))
+
+        return h.digest()
