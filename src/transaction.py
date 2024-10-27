@@ -1,6 +1,6 @@
 
 class Transaction:
-    def __init__(self, sender: int, receiver: int, tx_id: int, amount: int):
+    def __init__(self, sender: int, receiver: int, tx_id: int, amount: float):
         """
         @param sender: sender id
         @param receiver: receiver id
