@@ -16,7 +16,7 @@ class Block:
         self.transactions = transactions
 
     def calculate_hash(self) -> bytes:
-        h = hashlib.sha256()
+        h = hashlib.sha1()
         h.update(str(self.previous_hash).encode('utf-8'))
         h.update(str(self.epoch).encode('utf-8'))
         h.update(str(self.length).encode('utf-8'))
