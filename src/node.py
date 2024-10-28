@@ -1,25 +1,30 @@
+import socket
+import threading
 import hashlib
-from socket import socket
 
 from typing import List
-from src.block import Block
-from src.message import Message, MessageType
-from src.transaction import Transaction
+from block import Block
+from message import Message, MessageType
+from transaction import Transaction
 
 
 class Node:
     def __init__(self, id: int, port: int):
         self.id = id
-        self.blockchain = []
-        self.unconfirmed_tx = []
-        self.current_epoch = 0
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.current_epoch = 0
         self.current_Leader = 0
+        self.blockchain = []
+        self.unconfirmed_tx = []
 
     def start(self):
-        self.socket.bind(('localhost', self.port))
-        print(f'Node {self.id} started on port {self.port}')
+        """
+        Starts the node thread
+        """
+        listener_thread = threading.Thread(target=self.listen)
+        listener_thread.start()
+        print(f"Node {self.id} started on port {self.port}")
 
     def listen(self):
         # TODO
@@ -43,8 +48,7 @@ class Node:
 
     def add_transaction(self, transaction: Transaction):
         self.unconfirmed_tx.append(transaction)
-        
-        
+
     def compute_hash(self, epoch: int) -> str:
         """
         @param epoch: epoch number
@@ -54,8 +58,7 @@ class Node:
         input_str = f"{self.current_Leader}-{epoch}"  # Concatenate node ID and epoch as the input
         hash_value = hashlib.sha256(input_str.encode()).hexdigest()  # Compute the SHA-256 hash
         return hash_value
-    
-    
+
     # TODO saber se é preciso precaver contra o caso do leader ter crashado
     def get_leader(self, epoch: int, nodes: List['Node']) -> 'Node':
         """
