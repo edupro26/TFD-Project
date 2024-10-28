@@ -1,5 +1,6 @@
 from enum import Enum
 from block import Block
+import pickle # for serialization
 
 class MessageType(Enum):
     """
@@ -22,3 +23,13 @@ class Message:
         self.msg_type = msg_type
         self.content = content
         self.sender = sender
+
+    def serialize(self) -> bytes:
+        return pickle.dumps(self) # serialize the message (convert object to bytes)
+
+    @staticmethod
+    def deserialize(data) -> 'Message':
+        return pickle.loads(data) # deserialize the message (convert from bytes to object)
+
+    def __repr__(self) -> str:
+        return f"Message(type={self.msg_type}, sender={self.sender})"

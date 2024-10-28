@@ -16,11 +16,8 @@ class Block:
         self.transactions = transactions
 
     def calculate_hash(self) -> bytes:
-        h = hashlib.sha1()
-        h.update(str(self.previous_hash).encode('utf-8'))
-        h.update(str(self.epoch).encode('utf-8'))
-        h.update(str(self.length).encode('utf-8'))
-        for t in self.transactions:
-            h.update(str(t).encode('utf-8'))
+        block_str = f"{self.previous_hash}{self.epoch}{self.length}{[str(t) for t in self.transactions]}"
+        return hashlib.sha1(block_str.encode()).hexdigest()
 
-        return h.digest()
+    def __repr__(self) -> str:
+        return f"Block(epoch={self.epoch}, length={self.length}, hash={self.compute_hash()})"

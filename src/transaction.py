@@ -11,3 +11,6 @@ class Transaction:
         self.receiver = receiver
         self.tx_id = tx_id
         self.amount = amount
+
+    def __repr__(self) -> str:
+        return f"Transaction(sender={self.sender}, receiver={self.receiver}, tx_id={self.tx_id}, amount={self.amount})"
