@@ -1,6 +1,7 @@
 import socket
 import threading
 import hashlib
+import time
 from block import Block
 from message import Message, MessageType
 from transaction import Transaction
@@ -28,24 +29,39 @@ class Node:
         Starts the node thread
         """
         self.running = True
-        threading.Thread(target=self.listen_to_peers).start() # start the listening thread
-        threading.Thread(target=self.run_protocol).start() # start the main protocol thread
-        print(f"Node {self.id} started on port {self.port}")
+        self.listen_thread = threading.Thread(target=self.listen_to_peers, daemon=True)
+        self.listen_thread.start() # start the listening thread
+        print(f"Node {self.id} started on port {self.port}")        
+        try:    #para o caso de fecharmos um node
+            self.run_protocol() 
+        except KeyboardInterrupt:
+            self.stop()
+
+        # threading.Thread(target=self.listen_to_peers).start() # start the listening thread
+        # threading.Thread(target=self.run_protocol).start() # start the main protocol thread
 
     def stop(self):
         """
         Stops the node's threads
         """
-        self.running = False
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass        #pode ja ter crashado?
         self.socket.close()
+        self.running = False
 
     def listen_to_peers(self):
         """
         Listens to the peers for incoming messages
         """
         while self.running:
-            data, addr = self.socket.recvfrom(4096) # receive data from the socket
-            threading.Thread(target=self.handle_connection, args=(data, addr), daemon=True).start() # handle connection in a new thread
+            try:
+                data, addr = self.socket.recvfrom(4096) # receive data from the socket
+                threading.Thread(target=self.handle_connection, args=(data, addr), daemon=True).start() # handle connection in a new thread
+            except OSError as e:
+                print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
+                break
 
     def handle_connection(self, data: bytes, addr: tuple[str, int]):
         """
@@ -103,11 +119,13 @@ class Node:
 
     def run_protocol(self):
         while self.running:
+            time.sleep(1)  # remover
+            print(f"Node {self.id} running protocol")
             # TODO
             # determine if this node is the leader of the currect epoch using get_leader
             # if so, run leader phase
             # then, wait for epoch duration to finish
-            pass
+            
 
     def leader_phase(self):
         # TODO

@@ -1,3 +1,4 @@
+from __future__ import annotations      #imports redudantes e fix do erro da uniao no __init__
 from enum import Enum
 from block import Block
 import pickle # for serialization
@@ -17,7 +18,7 @@ class Message:
     def __init__(self, msg_type: MessageType, content: 'Message' | Block, sender: int):
         """
         @param msg_type: type of the message
-        @param content: content of the message
+        @param content: content of the message 
         @param sender: sender id
         """
         self.msg_type = msg_type
