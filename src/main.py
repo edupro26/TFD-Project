@@ -1,41 +1,27 @@
 import time
-import multiprocessing
-import subprocess
-import os
-import sys
 from node import Node
-
-def run_node(node_id, address, peers):  # Now outside main()
-    """Function to run a single node process."""
-    node = Node(node_id, address, peers)
-    node.start()
-
+from args import parse_args
 
 def main():
-    n_nodes = 5
-    nodes = []
     base_port = 8000
     host = "localhost"
+    args = parse_args()
+    epoch_delay = args.epoch_delay # to be used in the future
+    node_id = args.node_id
+    total_nodes = args.total_nodes
 
-    addresses = [(host, base_port + i) for i in range(n_nodes)]
-    processes = []
-
-    #TODO not sure se isto funciona no linux
-    for i, address in enumerate(addresses):
-        peers = addresses[:i] + addresses[i+1:] # skips address of the current node (removes self)
-        command = [sys.executable, "-c", f"import sys; from node import Node; node = Node({i}, ('{host}', {address[1]}), {peers}); node.start()", ]
-        process = subprocess.Popen(command,creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0, cwd=os.path.dirname(os.path.abspath(__file__)))
-        processes.append(process)
+    addresses = [(host, base_port + i) for i in range(total_nodes)]
+    peers = addresses[:node_id] + addresses[node_id+1:] # skips address of the current node (removes self)
+    node = Node(node_id, addresses[node_id], peers)
+    node.start()
 
     # keep the main thread alive to let the simulation run
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Stopping nodes...")
-        for process in processes:
-            process.terminate()  # send a termination signal
-            process.wait()       # wait for the process to complete
+        print("Stopping node...")
+        node.stop()
 
 
 if __name__ == '__main__':
