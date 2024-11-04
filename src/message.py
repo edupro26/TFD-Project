@@ -1,7 +1,12 @@
 from __future__ import annotations      #imports redudantes e fix do erro da uniao no __init__
+
+import hashlib
 from enum import Enum
-from block import Block
 import pickle # for serialization
+
+from block import Block
+from transaction import Transaction
+
 
 class MessageType(Enum):
     """
@@ -15,13 +20,14 @@ class MessageType(Enum):
     ECHO = 3
 
 class Message:
-    def __init__(self, msg_type: MessageType, content: 'Message' | Block, sender: int):
+    def __init__(self, type: MessageType, content: 'Transaction' | Block, sender: int):
+        # TODO See if it is supposed to be 'Message' or 'Transaction' in the content field
         """
-        @param msg_type: type of the message
-        @param content: content of the message 
+        @param type: type of the message
+        @param content: content of the message
         @param sender: sender id
         """
-        self.msg_type = msg_type
+        self.type = type
         self.content = content
         self.sender = sender
 
@@ -32,5 +38,15 @@ class Message:
     def deserialize(data) -> 'Message':
         return pickle.loads(data) # deserialize the message (convert from bytes to object)
 
+    def hash(self) -> str:
+        """
+        Computes a SHA-1 hash of the message.
+        """
+        hasher = hashlib.sha1()
+        hasher.update(self.type.name.encode('utf-8'))
+        hasher.update(pickle.dumps(self.content))
+        hasher.update(str(self.sender).encode('utf-8'))
+        return hasher.hexdigest()
+
     def __repr__(self) -> str:
-        return f"Message(type={self.msg_type}, sender={self.sender})"
+        return f"Message(type={self.type}, sender={self.sender})"
