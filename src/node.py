@@ -7,7 +7,7 @@ from message import Message, MessageType
 from transaction import Transaction
 
 class Node:
-    def __init__(self, id: int, address: tuple[str, int], peers: list[tuple[str, int]]):
+    def __init__(self, id: int, address: tuple[str, int], peers: list[tuple[str, int]], epoch_duration: int):
         """
         @param id: node id
         @param address: address of the node (host, port)
@@ -15,11 +15,14 @@ class Node:
         """
         self.id = id
         self.host, self.port = address
+        self.epoch_duration = epoch_duration
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.current_epoch = 0
         self.current_leader = 0
         self.blockchain = []
         self.pending_tx = []
+        self.votes = {}
+        self.notarized_blocks = set()
         self.peers = peers
         self.running = False
         self.socket.bind((self.host, self.port)) # bind the socket to the address
@@ -32,7 +35,7 @@ class Node:
         self.listen_thread = threading.Thread(target=self.listen_to_peers, daemon=True)
         self.listen_thread.start() # start the listening thread
         print(f"Node {self.id} started on port {self.port}")        
-        try:    #para o caso de fecharmos um node
+        try: # in case we stop a node using keyboard interrupt
             self.run_protocol() 
         except KeyboardInterrupt:
             self.stop()
@@ -42,12 +45,12 @@ class Node:
 
     def stop(self):
         """
-        Stops the node's threads
+        Stops the node
         """
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
-        except OSError:
-            pass        #pode ja ter crashado?
+        except OSError: # if the socket is already closed
+            pass
         self.socket.close()
         self.running = False
 
@@ -76,6 +79,9 @@ class Node:
             print(f"Node {self.id}: error handling connection from {addr}: {e}")
 
     def send_message(self, message: Message, recipient: tuple[str, int]):
+        """
+        Sends a message to a recipient
+        """
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect(recipient)
@@ -86,53 +92,103 @@ class Node:
             sock.close()
 
     def broadcast_message(self, message: Message):
+        """
+        Broadcasts a message to all peers
+        """
         for peer in self.peers:
             self.send_message(message, peer)
 
-    def handle_message(self, message):
+    def handle_message(self, message: Message):
+        """
+        Logic for handling a message
+        """
         if message.type != Message.ECHO:
             echo_message = Message(MessageType.ECHO, message, self.id)
             self.broadcast_message(echo_message) # urb broadcast
 
         if message.type == Message.PROPOSE:
-            self.propose_block(message)
+            self.handle_block_proposal(message)
         elif message.type == Message.VOTE:
-            self.vote_block(message)
+            self.handle_vote(message)
         elif message.type == Message.ECHO:
             self.handle_message(message.content)
 
-    def receive_message(self, message: Message):
-        # TODO
-        pass
+   
+    def handle_block_proposal(self, message: Message):
+        """
+        Logic for handling a block proposal message
+        """
+        block = message.content
+        # check if block extends the longest notarized chain, otherwise ignore it
+        if block.length > len(self.blockchain):
+            self.blockchain.append(block)
+            # vote for the block
+            vote_message = Message(MessageType.VOTE, block, self.id)
+            self.broadcast_message(vote_message)
+            
 
-    def propose_block(self):
-        # TODO
-        pass
+    def handle_vote(self, message: Message):
+        """
+        Logic for handling a vote message
+        """
+        block = message.content
+        block_hash = block.compute_hash()
+        if block_hash not in self.votes:
+            self.votes[block_hash] = set()
+        self.votes[block_hash].add(message.sender)
 
-    def vote_block(self, block: Block):
-        # TODO
-        pass
+        # check notarization
+        if len(self.votes[block_hash]) > len(self.peers) / 2:
+            if block_hash not in self.notarized_blocks:
+                self.notarized_blocks.add(block_hash)
+                # check for finalization
+                self.check_finalization()
+            
 
     def check_finalization(self):
         # TODO
         pass
 
     def run_protocol(self):
+        """
+        Main logic of the node containing the protocol
+        """
         while self.running:
-            time.sleep(1)  # remover
             print(f"Node {self.id} running protocol")
-            # TODO
-            # determine if this node is the leader of the currect epoch using get_leader
-            # if so, run leader phase
-            # then, wait for epoch duration to finish
-            
+            start_time = time.time()
+            self.elect_leader() # elect the new leader of the epoch
+            if self.current_leader == self.id: # if this node is the leader
+                self.run_leader_phase()
+
+            # wait for the epoch duration
+            elapsed_time = time.time() - start_time
+            time.sleep(self.epoch_duration - elapsed_time)
+            self.current_epoch += 1            
 
     def leader_phase(self):
-        # TODO
-        # propose a block
-        pass
+        """
+        Runs the leader phase by proposing a new block and broadcasting it
+        """
+        # propose new block
+        previous_block = self.blockchain[-1]
+        previous_hash = previous_block.compute_hash()
+        new_block = Block(
+            previous_hash = previous_hash,
+            epoch = self.current_epoch,
+            length = len(self.blockchain),
+            transactions = self.pending_tx.copy()
+        )
+        # clear the pending transactions
+        self.pending_tx.clear()
+
+        # broadcast the proposed block
+        propose_message = Message(MessageType.PROPOSE, new_block, self.id)
+        self.broadcast_message(propose_message)
         
     def add_transaction(self, transaction: Transaction):
+        """
+        Adds a transaction to the pending transactions list
+        """
         self.pending_tx.append(transaction)
 
     def compute_hash(self, epoch: int) -> str:
@@ -146,12 +202,12 @@ class Node:
         return hash_value
 
     # TODO saber se é preciso precaver contra o caso do leader ter crashado
-    def get_leader(self, epoch: int, nodes: list['Node']) -> 'Node':
+    def elect_leader(self, epoch: int, nodes: list['Node']):
         """
         @param epoch: epoch number
         @param nodes: list of nodes
-        Obtain the leader of the epoch based on the hash of the epoch
+        Elects the new leader of the epoch based on the hash of the epoch
         """
         hash = self.compute_hash(epoch)
-        leader_id = int(hash, 16) % len(nodes)
-        return nodes[leader_id]
+        self.current_leader = int(hash, 16) % len(nodes)
+        
