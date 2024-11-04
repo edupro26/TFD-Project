@@ -6,9 +6,9 @@ Master's degree in Computer Science
 
 ## Usage
 
-Run the following command in the terminal to start the `__main__.py` script:
+Run the following command in the terminal to start the `main.py` script:
 
-```python __main__.py```
+```python main.py```
 
 This script will ask you to enter the number of nodes to create and an epoch duration. 
 After that, it will spawn the nodes and run a workload simulating clients submitting transactions to one or more nodes.
@@ -16,7 +16,7 @@ After that, it will spawn the nodes and run a workload simulating clients submit
 An execution example is shown below:
 
 ```
-$ python __main__.py
+$ python main.py
 Enter the number of nodes: 5
 Enter the epoch duration: 2
 Nodes started
