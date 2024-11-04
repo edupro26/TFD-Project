@@ -1,119 +1,87 @@
 import socket
 import threading
-import hashlib
 import time
+import hashlib
+
+from args import parse_args
 from block import Block
 from message import Message, MessageType
-from transaction import Transaction
+
 
 class Node:
-    def __init__(self, id: int, address: tuple[str, int], peers: list[tuple[str, int]], epoch_duration: int):
-        """
-        @param id: node id
-        @param address: address of the node (host, port)
-        @param peers: list of addresses of the peers [(host, port)]
-        """
+    def __init__(self, host: str, port: int, id: int, peers: list[int], epoch_duration: int):
+        self.host = host
+        self.port = port
         self.id = id
-        self.host, self.port = address
-        self.epoch_duration = epoch_duration
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.current_epoch = 0
-        self.current_leader = 0
-        self.blockchain = []
+        self.peers = [(self.host, int(p)) for p in peers]
+        self.running = False
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.pending_tx = []
+        self.current_leader = 0
+        self.current_epoch = 0
         self.votes = {}
         self.notarized_blocks = set()
-        self.peers = peers
-        self.running = False
-        self.socket.bind((self.host, self.port)) # bind the socket to the address
+        self.epoch_duration = epoch_duration
+        self.blockchain = []
 
-    def start(self):
-        """
-        Starts the node thread
-        """
+        # To avoid processing the same message multiple times
+        self.received_messages = set()
+
+    def run(self):
         self.running = True
-        self.listen_thread = threading.Thread(target=self.listen_to_peers, daemon=True)
-        self.listen_thread.start() # start the listening thread
-        print(f"Node {self.id} started on port {self.port}")        
-        try: # in case we stop a node using keyboard interrupt
-            self.run_protocol() 
-        except KeyboardInterrupt:
-            self.stop()
-
-        # threading.Thread(target=self.listen_to_peers).start() # start the listening thread
-        # threading.Thread(target=self.run_protocol).start() # start the main protocol thread
+        server_thread = threading.Thread(target=self.start_server, daemon=True)
+        server_thread.start()
 
     def stop(self):
-        """
-        Stops the node
-        """
-        try:
-            self.socket.shutdown(socket.SHUT_RDWR)
-        except OSError: # if the socket is already closed
-            pass
-        self.socket.close()
         self.running = False
+        self.server_socket.close()
 
-    def listen_to_peers(self):
-        """
-        Listens to the peers for incoming messages
-        """
+    def start_server(self):
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen(len(self.peers))
+        print(f"Node {self.id} started on {self.host}:{self.port}")
+        threading.Thread(target=self.run_protocol).start()
         while self.running:
             try:
-                data, addr = self.socket.recvfrom(4096) # receive data from the socket
-                threading.Thread(target=self.handle_connection, args=(data, addr), daemon=True).start() # handle connection in a new thread
-            except OSError as e:
-                print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
+                client_socket, address = self.server_socket.accept()
+                threading.Thread(target=self.listen_to_peers, args=(client_socket,)).start()
+            except socket.error:
                 break
 
-    def handle_connection(self, data: bytes, addr: tuple[str, int]):
-        """
-        Handles incoming connections
-        @param data: incoming data
-        @param addr: address of the sender (host, port)
-        """
+    def listen_to_peers(self, client_socket):
         try:
+            data = client_socket.recv(1024)
             message = Message.deserialize(data)
-            self.handle_message(message)
-        except Exception as e:
-            print(f"Node {self.id}: error handling connection from {addr}: {e}")
-
-    def send_message(self, message: Message, recipient: tuple[str, int]):
-        """
-        Sends a message to a recipient
-        """
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(recipient)
-            sock.sendall(message.serialize())
-        except Exception as e:
-            print(f"Node {self.id}: error sending message to {recipient}: {e}")
+            if message:
+                print(f"Received message: {message}")
+                self.handle_message(message)
+        except OSError as e:
+            print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
         finally:
-            sock.close()
+            client_socket.close()
 
-    def broadcast_message(self, message: Message):
-        """
-        Broadcasts a message to all peers
-        """
-        for peer in self.peers:
-            self.send_message(message, peer)
+    def urb_broadcast(self, message: Message):
+        message_hash = message.hash()
+        if message_hash not in self.received_messages:
+            self.received_messages.add(message_hash)
+            for peer in self.peers:
+                try:
+                    peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    peer_socket.connect(peer)
+                    peer_socket.sendall(message.serialize())
+                    peer_socket.close()
+                except Exception as e:
+                    print(f"Failed to send to {peer}: {e}")
 
     def handle_message(self, message: Message):
-        """
-        Logic for handling a message
-        """
-        if message.type != Message.ECHO:
-            echo_message = Message(MessageType.ECHO, message, self.id)
-            self.broadcast_message(echo_message) # urb broadcast
+        match message.type:
+            case MessageType.ECHO:
+                self.urb_broadcast(message)
+            case MessageType.PROPOSE:
+                self.handle_block_proposal(message)
+            case MessageType.VOTE:
+                self.handle_block_vote(message)
 
-        if message.type == Message.PROPOSE:
-            self.handle_block_proposal(message)
-        elif message.type == Message.VOTE:
-            self.handle_vote(message)
-        elif message.type == Message.ECHO:
-            self.handle_message(message.content)
-
-   
     def handle_block_proposal(self, message: Message):
         """
         Logic for handling a block proposal message
@@ -124,10 +92,9 @@ class Node:
             self.blockchain.append(block)
             # vote for the block
             vote_message = Message(MessageType.VOTE, block, self.id)
-            self.broadcast_message(vote_message)
-            
+            self.urb_broadcast(vote_message)
 
-    def handle_vote(self, message: Message):
+    def handle_block_vote(self, message: Message):
         """
         Logic for handling a vote message
         """
@@ -143,29 +110,30 @@ class Node:
                 self.notarized_blocks.add(block_hash)
                 # check for finalization
                 self.check_finalization()
-            
-
-    def check_finalization(self):
-        # TODO
-        pass
 
     def run_protocol(self):
         """
         Main logic of the node containing the protocol
         """
+        print(f"Node {self.id} running protocol")
         while self.running:
-            print(f"Node {self.id} running protocol")
             start_time = time.time()
-            self.elect_leader() # elect the new leader of the epoch
-            if self.current_leader == self.id: # if this node is the leader
-                self.run_leader_phase()
+            # TODO this needs fixing
+            #self.elect_leader()  # elect the new leader of the epoch
+            if self.current_leader == self.id:  # if this node is the leader
+                # self.run_leader_phase() TODO this needs fixing
+                pass
 
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
             time.sleep(self.epoch_duration - elapsed_time)
-            self.current_epoch += 1            
+            self.current_epoch += 1
 
-    def leader_phase(self):
+    def check_finalization(self):
+        # TODO
+        pass
+
+    def run_leader_phase(self):
         """
         Runs the leader phase by proposing a new block and broadcasting it
         """
@@ -173,23 +141,17 @@ class Node:
         previous_block = self.blockchain[-1]
         previous_hash = previous_block.compute_hash()
         new_block = Block(
-            previous_hash = previous_hash,
-            epoch = self.current_epoch,
-            length = len(self.blockchain),
-            transactions = self.pending_tx.copy()
+            previous_hash=previous_hash,
+            epoch=self.current_epoch,
+            length=len(self.blockchain),
+            transactions=self.pending_tx.copy()
         )
         # clear the pending transactions
         self.pending_tx.clear()
 
         # broadcast the proposed block
         propose_message = Message(MessageType.PROPOSE, new_block, self.id)
-        self.broadcast_message(propose_message)
-        
-    def add_transaction(self, transaction: Transaction):
-        """
-        Adds a transaction to the pending transactions list
-        """
-        self.pending_tx.append(transaction)
+        self.urb_broadcast(propose_message)
 
     def compute_hash(self, epoch: int) -> str:
         """
@@ -210,4 +172,18 @@ class Node:
         """
         hash = self.compute_hash(epoch)
         self.current_leader = int(hash, 16) % len(nodes)
-        
+
+
+if __name__ == "__main__":
+    host = 'localhost'
+    args = parse_args()
+    node = Node(host, args.port, args.id, args.peers, args.epoch_duration)
+    node.run()
+
+    # Keep the main thread alive
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nShutting down node...")
+        node.stop()
