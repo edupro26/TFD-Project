@@ -4,8 +4,8 @@ import hashlib
 from enum import Enum
 import pickle # for serialization
 
-from block import Block
-from transaction import Transaction
+from data.block import Block
+from data.transaction import Transaction
 
 
 class MessageType(Enum):

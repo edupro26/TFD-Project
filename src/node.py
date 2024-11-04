@@ -3,9 +3,9 @@ import threading
 import time
 import hashlib
 
-from args import parse_args
-from block import Block
-from message import Message, MessageType
+from utils.args import parse_args
+from data.block import Block
+from data.message import Message, MessageType
 
 
 class Node:

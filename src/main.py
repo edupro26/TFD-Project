@@ -3,8 +3,8 @@ import subprocess
 import sys
 import time
 
-from message import Message, MessageType
-from transaction import Transaction
+from data.message import Message, MessageType
+from data.transaction import Transaction
 
 
 def spawn_nodes(base_port, num_nodes, epoch_duration):
