@@ -119,8 +119,16 @@ class Node:
 
     def run_protocol(self):
         while self.running:
-            time.sleep(1)  # remover
-            print(f"Node {self.id} running protocol")
+            try:
+                time.sleep(1)  # remover
+                print(f"Node {self.id} running protocol")
+            except Exception as e:
+                # Catch any exception and log it
+                print(f"An error occurred in Node {self.id}: {e}")
+                # Optionally, you can log the traceback for more detailed debugging:
+                import traceback
+                traceback.print_exc()
+
             # TODO
             # determine if this node is the leader of the currect epoch using get_leader
             # if so, run leader phase

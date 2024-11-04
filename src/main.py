@@ -7,7 +7,7 @@ def main():
     host = "localhost"
     args = parse_args()
     epoch_delay = args.epoch_delay # to be used in the future
-    node_id = args.node_id
+    node_id = args.node_id  # corresponde o id com o indice da lista
     total_nodes = args.total_nodes
 
     addresses = [(host, base_port + i) for i in range(total_nodes)]
