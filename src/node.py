@@ -22,7 +22,11 @@ class Node:
         self.votes = {}
         self.notarized_blocks = set()
         self.epoch_duration = epoch_duration
+
+        # Initialize the blockchain with the genesis block
         self.blockchain = []
+        genesis_block = Block(previous_hash=b'0', epoch=0, length=1, transactions=[])
+        self.blockchain.append(genesis_block)
 
         # To avoid processing the same message multiple times
         self.received_messages = set()
@@ -118,11 +122,9 @@ class Node:
         print(f"Node {self.id} running protocol")
         while self.running:
             start_time = time.time()
-            # TODO this needs fixing
-            #self.elect_leader()  # elect the new leader of the epoch
+            self.elect_leader(self.current_epoch)  # elect the new leader of the epoch
             if self.current_leader == self.id:  # if this node is the leader
-                # self.run_leader_phase() TODO this needs fixing
-                pass
+                self.run_leader_phase()
 
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
@@ -153,25 +155,16 @@ class Node:
         propose_message = Message(MessageType.PROPOSE, new_block, self.id)
         self.urb_broadcast(propose_message)
 
-    def compute_hash(self, epoch: int) -> str:
+    def elect_leader(self, epoch: int):
+        # TODO may need to also handle leader crash
         """
         @param epoch: epoch number
-        Determine the leader of the epoch based on a VRF (Verifiable Random Function) - it is "random" but verifiable
-        Concatenate the current leader with the epoch and hash it
+        Determine the leader of the epoch based on a VRF (Verifiable Random Function).
+        It is "random" but verifiable. Concatenate the current leader with the epoch and hash it
         """
-        input_str = f"{self.current_leader}-{epoch}"  # Concatenate node ID and epoch as the input
-        hash_value = hashlib.sha1(input_str.encode()).hexdigest()  # Compute the SHA-1 hash
-        return hash_value
-
-    # TODO saber se é preciso precaver contra o caso do leader ter crashado
-    def elect_leader(self, epoch: int, nodes: list['Node']):
-        """
-        @param epoch: epoch number
-        @param nodes: list of nodes
-        Elects the new leader of the epoch based on the hash of the epoch
-        """
-        hash = self.compute_hash(epoch)
-        self.current_leader = int(hash, 16) % len(nodes)
+        input = f"{self.current_leader}{epoch}"  # Concatenate node ID and epoch as the input
+        hash = hashlib.sha1(input.encode()).hexdigest()
+        self.current_leader = int(hash, 16) % (len(self.peers) + 1)
 
 
 if __name__ == "__main__":
