@@ -3,13 +3,21 @@ import threading
 import time
 import hashlib
 
-from utils.args import parse_args
-from data.block import Block
-from data.message import Message, MessageType
+from utils.args import parse_program_args
+from domain.block import Block
+from domain.message import Message, MessageType
 
 
 class Node:
     def __init__(self, host: str, port: int, id: int, peers: list[int], epoch_duration: int):
+        """
+        Initializes a new node
+        @param host: the host of the node
+        @param port: the port of the node
+        @param id: the id of the node
+        @param peers: the list of neighboring nodes
+        @param epoch_duration: the duration of an epoch in seconds
+        """
         self.host = host
         self.port = port
         self.id = id
@@ -24,23 +32,31 @@ class Node:
         self.epoch_duration = epoch_duration
 
         # Initialize the blockchain with the genesis block
-        self.blockchain = []
         genesis_block = Block(previous_hash=b'0', epoch=0, length=1, transactions=[])
-        self.blockchain.append(genesis_block)
-
+        self.blockchain = [genesis_block]
+        
         # To avoid processing the same message multiple times
         self.received_messages = set()
 
-    def run(self):
+    def start(self):
+        """
+        Starts the node
+        """
         self.running = True
         server_thread = threading.Thread(target=self.start_server, daemon=True)
         server_thread.start()
 
     def stop(self):
+        """
+        Stops the node
+        """
         self.running = False
         self.server_socket.close()
 
     def start_server(self):
+        """
+        Starts the server socket and listens for incoming connections
+        """
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(len(self.peers))
         print(f"Node {self.id} started on {self.host}:{self.port}")
@@ -52,7 +68,11 @@ class Node:
             except socket.error:
                 break
 
-    def listen_to_peers(self, client_socket):
+    def listen_to_peers(self, client_socket: socket.socket):
+        """
+        Listens to incoming messages from peers
+        @param client_socket: the socket to listen to
+        """
         try:
             data = client_socket.recv(1024)
             message = Message.deserialize(data)
@@ -65,6 +85,9 @@ class Node:
             client_socket.close()
 
     def urb_broadcast(self, message: Message):
+        """
+        URB-broadcasts a message to all peers
+        """
         message_hash = message.hash()
         if message_hash not in self.received_messages:
             self.received_messages.add(message_hash)
@@ -78,6 +101,10 @@ class Node:
                     print(f"Failed to send to {peer}: {e}")
 
     def handle_message(self, message: Message):
+        """
+        Logic for handling a message
+        @param message: the message to handle
+        """
         match message.type:
             case MessageType.ECHO:
                 self.urb_broadcast(message)
@@ -89,6 +116,7 @@ class Node:
     def handle_block_proposal(self, message: Message):
         """
         Logic for handling a block proposal message
+        @param message: the message containing the block proposal
         """
         block = message.content
         # check if block extends the longest notarized chain, otherwise ignore it
@@ -101,6 +129,7 @@ class Node:
     def handle_block_vote(self, message: Message):
         """
         Logic for handling a vote message
+        @param message: the message containing the vote
         """
         block = message.content
         block_hash = block.compute_hash()
@@ -161,6 +190,7 @@ class Node:
         @param epoch: epoch number
         Determine the leader of the epoch based on a VRF (Verifiable Random Function).
         It is "random" but verifiable. Concatenate the current leader with the epoch and hash it
+        @param epoch: the epoch number
         """
         input = f"{self.current_leader}{epoch}"  # Concatenate node ID and epoch as the input
         hash = hashlib.sha1(input.encode()).hexdigest()
@@ -169,9 +199,9 @@ class Node:
 
 if __name__ == "__main__":
     host = 'localhost'
-    args = parse_args()
+    args = parse_program_args()
     node = Node(host, args.port, args.id, args.peers, args.epoch_duration)
-    node.run()
+    node.start()
 
     # Keep the main thread alive
     try:

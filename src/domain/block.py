@@ -1,6 +1,6 @@
 import hashlib
 
-from data.transaction import Transaction
+from domain.transaction import Transaction
 
 class Block:
     def __init__(self, previous_hash: bytes, epoch: int, length: int, transactions: list[Transaction]):

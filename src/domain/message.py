@@ -1,11 +1,11 @@
-from __future__ import annotations      #imports redudantes e fix do erro da uniao no __init__
+from __future__ import annotations
 
 import hashlib
 from enum import Enum
 import pickle # for serialization
 
-from data.block import Block
-from data.transaction import Transaction
+from domain.block import Block
+from domain.transaction import Transaction
 
 
 class MessageType(Enum):
@@ -18,6 +18,9 @@ class MessageType(Enum):
     PROPOSE = 1
     VOTE = 2
     ECHO = 3
+
+    def __str__(self) -> str:
+        return self.name
 
 class Message:
     def __init__(self, type: MessageType, content: 'Transaction' | Block, sender: int):

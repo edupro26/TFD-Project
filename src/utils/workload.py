@@ -1,8 +1,8 @@
 import socket
 import time
 
-from data.message import Message, MessageType
-from data.transaction import Transaction
+from domain.message import Message, MessageType
+from domain.transaction import Transaction
 
 BASE_PORT = 8000
 
@@ -31,7 +31,3 @@ def run_workload():
     msg2 = Message(type=MessageType.ECHO, content=tx2, sender=2)
     sock2.sendall(msg2.serialize())
     sock2.close()
-
-
-if __name__ == "__main__":
-    run_workload()
