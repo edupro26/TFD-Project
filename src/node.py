@@ -3,6 +3,7 @@ import threading
 import time
 import hashlib
 
+from domain.transaction import Transaction
 from utils.args import parse_program_args
 from domain.block import Block
 from domain.message import Message, MessageType
@@ -74,11 +75,18 @@ class Node:
         @param client_socket: the socket to listen to
         """
         try:
+            # Read the first 3 bytes as the header
+            header = client_socket.recv(3).decode('utf-8')
             data = client_socket.recv(1024)
-            message = Message.deserialize(data)
-            if message:
-                print(f"Received message: {message}")
-                self.handle_message(message)
+            match header:
+                case "MSG":
+                    if message := Message.deserialize(data):
+                        print(f"Received message: {message}")
+                        self.handle_message(message)
+                case "TXN":
+                    if transaction := Transaction.deserialize(data):
+                        print(f"Received transaction: {transaction}")
+                        self.add_transaction(transaction)
         except OSError as e:
             print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
         finally:
@@ -95,10 +103,17 @@ class Node:
                 try:
                     peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     peer_socket.connect(peer)
-                    peer_socket.sendall(message.serialize())
+                    peer_socket.sendall(b"MSG" + message.serialize())
                     peer_socket.close()
                 except Exception as e:
                     print(f"Failed to send to {peer}: {e}")
+
+    def add_transaction(self, transaction: Transaction):
+        """
+        Adds a transaction to the pending transactions
+        @param transaction: the transaction to add
+        """
+        self.pending_tx.append(transaction)
 
     def handle_message(self, message: Message):
         """

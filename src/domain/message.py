@@ -5,7 +5,6 @@ from enum import Enum
 import pickle # for serialization
 
 from domain.block import Block
-from domain.transaction import Transaction
 
 
 class MessageType(Enum):
@@ -23,8 +22,7 @@ class MessageType(Enum):
         return self.name
 
 class Message:
-    def __init__(self, type: MessageType, content: 'Transaction' | Block, sender: int):
-        # TODO See if it is supposed to be 'Message' or 'Transaction' in the content field
+    def __init__(self, type: MessageType, content: 'Message' | Block, sender: int):
         """
         @param type: type of the message
         @param content: content of the message
