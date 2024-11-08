@@ -3,6 +3,7 @@ import threading
 import time
 import hashlib
 
+from collections import deque
 from domain.transaction import Transaction
 from utils.args import parse_program_args
 from domain.block import Block
@@ -37,7 +38,7 @@ class Node:
         self.blockchain = [genesis_block]
         
         # To avoid processing the same message multiple times
-        self.received_messages = set()
+        self.received_messages = deque(maxlen=100) #TODO ajust this value
 
     def start(self):
         """
@@ -96,17 +97,14 @@ class Node:
         """
         URB-broadcasts a message to all peers
         """
-        message_hash = message.hash()
-        if message_hash not in self.received_messages:
-            self.received_messages.add(message_hash)
-            for peer in self.peers:
-                try:
-                    peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    peer_socket.connect(peer)
-                    peer_socket.sendall(b"MSG" + message.serialize())
-                    peer_socket.close()
-                except Exception as e:
-                    print(f"Failed to send to {peer}: {e}")
+        for peer in self.peers:
+            try:
+                peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                peer_socket.connect(peer)
+                peer_socket.sendall(b"MSG" + message.serialize())
+                peer_socket.close()
+            except Exception as e:
+                print(f"Failed to send to {peer}: {e}")
 
     def add_transaction(self, transaction: Transaction):
         """
@@ -120,13 +118,24 @@ class Node:
         Logic for handling a message
         @param message: the message to handle
         """
-        match message.type:
-            case MessageType.ECHO:
-                self.urb_broadcast(message)
-            case MessageType.PROPOSE:
-                self.handle_block_proposal(message)
-            case MessageType.VOTE:
-                self.handle_block_vote(message)
+        # TODO Does ECHO also need to be echoed?
+        if message.type == MessageType.ECHO:
+            echo = message.content
+            if echo.hash() not in self.received_messages:
+                self.received_messages.append(echo.hash())
+                if echo.type == MessageType.PROPOSE:
+                    self.handle_block_proposal(echo)
+                elif echo.type == MessageType.VOTE:
+                    self.handle_block_vote(echo)
+        else:
+            if message.hash() not in self.received_messages:
+                self.received_messages.append(message.hash())
+                self.urb_broadcast(Message(MessageType.ECHO, message, self.id))
+                if message.type == MessageType.PROPOSE:
+                    self.handle_block_proposal(message)
+                elif message.type == MessageType.VOTE:
+                    self.handle_block_vote(message)
+
 
     def handle_block_proposal(self, message: Message):
         """
