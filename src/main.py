@@ -7,7 +7,7 @@ def main():
     num_nodes, epoch_duration = get_command_line_args()
     start_nodes(BASE_PORT, num_nodes, epoch_duration)
     print("Nodes started\n")
-    run_workload()
+    run_workload(BASE_PORT, num_nodes)
 
 if __name__ == "__main__":
     main()

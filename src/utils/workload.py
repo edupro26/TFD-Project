@@ -1,31 +1,56 @@
+import random
 import socket
 import time
+from collections import deque
 
-from domain.message import Message, MessageType
 from domain.transaction import Transaction
 
-BASE_PORT = 8000
 
-def run_workload():
-    print("Running workload...")
+# Dictionary to keep track of recent tx_ids
+recent_tx_ids = {}
 
-    # Wait for the nodes to start
-    time.sleep(2)
+def generate_tx_id(sender: int) -> int:
+    """
+    Generate a unique, random tx_id for the given sender.
+    """
+    if sender not in recent_tx_ids:
+        recent_tx_ids[sender] = deque(maxlen=1000)
 
-    # TODO
-    #  Create a loop that generates random transactions
-    #  Send the transactions to the nodes randomly
+    tx_id = random.randint(100000, 999999)
+    while tx_id in recent_tx_ids[sender]:
+        tx_id = random.randint(100000, 999999)
 
-    # This is a test transaction
-    sock1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock1.connect(("localhost", BASE_PORT))
-    tx1 = Transaction(sender=3, receiver=5, tx_id=1111, amount=100)
-    sock1.sendall(b"TXN" + tx1.serialize())
-    sock1.close()
+    recent_tx_ids[sender].append(tx_id)
+    return tx_id
 
-    # This is another test transaction
-    sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock2.connect(("localhost", BASE_PORT + 1))
-    tx2 = Transaction(sender=2, receiver=6, tx_id=2222, amount=200)
-    sock2.sendall(b"TXN" + tx2.serialize())
-    sock2.close()
+def run_workload(base_port: int, num_nodes: int):
+    """
+    Simulates the workload imposed by clients submitting
+    transactions to the server nodes.
+    :param base_port: the base port number
+    :param num_nodes: the number of nodes
+    """
+    print("Starting workload...")
+    # TODO Create workload threads in the future
+    try:
+        while True:
+            sender = random.randint(1, 20)
+            receiver = random.randint(1, 20)
+            # Ensure sender and receiver are different
+            while receiver == sender:
+                receiver = random.randint(1, 20)
+            tx_id = generate_tx_id(sender)
+            amount = round(random.uniform(1, 1000), 2)
+
+            transaction = Transaction(sender=sender, receiver=receiver, tx_id=tx_id, amount=amount)
+            node_port = base_port + random.randint(0, num_nodes - 1)
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.connect(("localhost", node_port))
+                    sock.sendall(b"TXN" + transaction.serialize())
+            except Exception as e:
+                print(f"Lost connection to node {node_port}: {e}")
+
+            time.sleep(random.uniform(1, 5))
+    except KeyboardInterrupt:
+        print("\nWorkload interrupted. Exiting...")
