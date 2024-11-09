@@ -12,8 +12,8 @@ def parse_program_args():
 
 def get_command_line_args() -> tuple[int, int]:
     num_nodes = int(input("Enter the number of nodes: "))
-    if num_nodes < 2:
-        raise ValueError("Invalid number of nodes. Must be at least 2.")
+    if num_nodes < 3:
+        raise ValueError("Invalid number of nodes. Must be at least 3.")
 
     epoch_duration = int(input("Enter the epoch duration: "))
     if epoch_duration < 1:
