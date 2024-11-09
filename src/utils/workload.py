@@ -2,7 +2,6 @@ import random
 import socket
 import time
 from collections import deque
-
 from domain.transaction import Transaction
 
 

@@ -1,8 +1,8 @@
-import hashlib
-import pickle # for serialization
 from __future__ import annotations
 from enum import Enum
 from domain.block import Block
+import hashlib
+import pickle # for serialization
 
 
 class MessageType(Enum):
