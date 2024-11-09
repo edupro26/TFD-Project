@@ -31,6 +31,7 @@ class Node:
         self.current_epoch = 0
         self.votes = {}
         self.notarized_blocks = set()
+        self.finalized_blocks = set()
         self.epoch_duration = epoch_duration
 
         # Initialize the blockchain with the genesis block
@@ -38,7 +39,9 @@ class Node:
         self.blockchain = [genesis_block]
         
         # To avoid processing the same message multiple times
-        self.received_messages = deque(maxlen=100) #TODO ajust this value
+        self.received_messages = deque(maxlen=100) # TODO adjust this value
+
+       
 
     def start(self):
         """
@@ -185,8 +188,35 @@ class Node:
             self.current_epoch += 1
 
     def check_finalization(self):
-        # TODO
-        pass
+        """
+        Checks the finalization of blocks and finalizes if it identifies three consecutive notarized blocks with consecutive epochs
+        If so, it finalizes the second block and all its previous blocks
+        """
+        finalized_blocks = set()
+
+        for i in range(len(self.blockchain) - 2):
+            # three consecutive blocks
+            block1, block2, block3 = self.blockchain[i:i+3]
+
+            # check if all three blocks are notarized and have consecutive epochs
+            blocks = [block1, block2, block3] 
+            block_epochs = [block.epoch for block in blocks]
+            all_notarized = all(block.compute_hash() in self.notarized_blocks for block in blocks)
+            all_consecutive = all(block_epochs[i] + 1 == block_epochs[i + 1] for i in range(len(block_epochs) - 1))
+
+            if all_notarized and all_consecutive:
+                # finalize the second block and all previous blocks
+                for j in range(i+1):
+                    finalized_block = self.blockchain[j]
+                    finalized_hash = finalized_block.compute_hash()
+                    
+                    # check if block is not already finalized
+                    if finalized_hash not in finalized_blocks and finalized_hash not in self.finalized_blocks:
+                        finalized_blocks.add(finalized_hash)
+                        print(f"Finalized block: {finalized_block}")
+
+        # update the set of finalized blocks
+        self.finalized_blocks.update(finalized_blocks)
 
     def run_leader_phase(self):
         """
