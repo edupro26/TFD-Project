@@ -1,0 +1,72 @@
+\documentclass[a4paper,openright,twoside,11pt]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage{lipsum}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[Algoritmo]{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{titlesec}
+\usepackage{indentfirst}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\setlength{\textheight}{24.00cm}
+\setlength{\textwidth}{15.50cm}
+\setlength{\topmargin}{0.35cm}
+\setlength{\headheight}{0cm}
+\setlength{\headsep}{0cm}
+\setlength{\oddsidemargin}{0.25cm}
+\setlength{\evensidemargin}{0.25cm}
+
+\titleformat{\section}[block]{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{1cm}{0.5cm}
+
+\titleformat{\subsection}[block]{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{0.5cm}{0.4cm}
+
+\titleformat{\subsubsection}[block]{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{1cm}{0.4cm}
+
+\title{
+   \vspace{-50mm}
+   \begin{minipage}[l]{\textwidth}
+      \hspace{-5mm}\resizebox{75mm}{!}{\includegraphics{./figures/logo_ciencias.png}}\\
+   \end{minipage}\\[20mm]
+   {\bf Distributed Fault Tolerance}\\[5mm]
+   {\bf Streamlet Consensus Algorithm (Phase 1)}\\[20mm]
+}
+
+\author{
+    \begin{tabular}{ll}
+        Eduardo Proença & 57551\\
+        Pedro Cardoso & 58212\\
+        Ricardo Costa & 64371\\\\[50mm]
+    \end{tabular}
+}
+
+\date{
+\begin{tabular}{ll}
+  {Prof. Alysson Bessani} \\
+\end{tabular}\\[10mm]
+Report of the Semester Project \\
+MSc in Computer Science and Engineering\\[20mm]
+November 2024}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\include{phase1}
+% \include{phase2}
+
+% references
+\nocite{*}
+\bibliographystyle{unsrt}
+\bibliography{references}
+\addcontentsline{toc}{chapter}{References}
+
+\end{document} 
