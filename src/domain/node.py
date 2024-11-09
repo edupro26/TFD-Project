@@ -2,7 +2,6 @@ import socket
 import threading
 import time
 import hashlib
-
 from collections import deque
 from domain.transaction import Transaction
 from utils.args import parse_program_args
@@ -33,15 +32,8 @@ class Node:
         self.notarized_blocks = set()
         self.finalized_blocks = set()
         self.epoch_duration = epoch_duration
-
-        # Initialize the blockchain with the genesis block
-        genesis_block = Block(previous_hash=b'0', epoch=0, length=1, transactions=[])
-        self.blockchain = [genesis_block]
-        
-        # To avoid processing the same message multiple times
-        self.received_messages = deque(maxlen=100) # TODO adjust this value
-
-       
+        self.blockchain = [Block(previous_hash=b'0', epoch=0, length=1, transactions=[])] # initialize the blockchain with the genesis block
+        self.received_messages = deque(maxlen=100) # queue to avoid processing the same message multiple times
 
     def start(self):
         """
@@ -79,8 +71,7 @@ class Node:
         @param client_socket: the socket to listen to
         """
         try:
-            # Read the first 3 bytes as the header
-            header = client_socket.recv(3).decode('utf-8')
+            header = client_socket.recv(3).decode('utf-8') # read the first 3 bytes as the header
             data = client_socket.recv(1024)
             match header:
                 case "MSG":
@@ -139,7 +130,6 @@ class Node:
                 elif message.type == MessageType.VOTE:
                     self.handle_block_vote(message)
 
-
     def handle_block_proposal(self, message: Message):
         """
         Logic for handling a block proposal message
@@ -160,15 +150,16 @@ class Node:
         """
         block = message.content
         block_hash = block.compute_hash()
+
+        # add the vote to the set of votes for the block
         if block_hash not in self.votes:
             self.votes[block_hash] = set()
         self.votes[block_hash].add(message.sender)
 
-        # check notarization
+        # check notarization and finalization
         if len(self.votes[block_hash]) > len(self.peers) / 2:
             if block_hash not in self.notarized_blocks:
                 self.notarized_blocks.add(block_hash)
-                # check for finalization
                 self.check_finalization()
 
     def run_protocol(self):
@@ -178,8 +169,8 @@ class Node:
         print(f"Node {self.id} running protocol")
         while self.running:
             start_time = time.time()
-            self.elect_leader(self.current_epoch)  # elect the new leader of the epoch
-            if self.current_leader == self.id:  # if this node is the leader
+            self.elect_leader(self.current_epoch) # elect the new leader of the epoch
+            if self.current_leader == self.id: # if this node is the leader
                 self.run_leader_phase()
 
             # wait for the epoch duration
@@ -239,15 +230,14 @@ class Node:
         propose_message = Message(MessageType.PROPOSE, new_block, self.id)
         self.urb_broadcast(propose_message)
 
-    def elect_leader(self, epoch: int):
-        # TODO may need to also handle leader crash
+    def elect_leader(self, epoch: int): # TODO may need to also handle leader crash
         """
         @param epoch: epoch number
         Determine the leader of the epoch based on a VRF (Verifiable Random Function).
         It is "random" but verifiable. Concatenate the current leader with the epoch and hash it
         @param epoch: the epoch number
         """
-        input = f"{self.current_leader}{epoch}"  # Concatenate node ID and epoch as the input
+        input = f"{self.current_leader}{epoch}" # concatenate node id and epoch as the input
         hash = hashlib.sha1(input.encode()).hexdigest()
         self.current_leader = int(hash, 16) % (len(self.peers) + 1)
 
@@ -258,7 +248,7 @@ if __name__ == "__main__":
     node = Node(host, args.port, args.id, args.peers, args.epoch_duration)
     node.start()
 
-    # Keep the main thread alive
+    # keep the main thread alive
     try:
         while True:
             time.sleep(1)

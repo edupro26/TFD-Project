@@ -1,5 +1,4 @@
 import hashlib
-
 from domain.transaction import Transaction
 
 class Block:
