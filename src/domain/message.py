@@ -31,15 +31,25 @@ class Message:
         self.sender = sender
 
     def serialize(self) -> bytes:
-        return pickle.dumps(self) # serialize the message (convert object to bytes)
+        """
+        Serialize the message (convert object to bytes)
+        :return: the serialized message
+        """
+        return pickle.dumps(self)
 
     @staticmethod
     def deserialize(data) -> 'Message':
-        return pickle.loads(data) # deserialize the message (convert from bytes to object)
+        """
+        Deserialize the message (convert from bytes to object)
+        :param data: the serialized message
+        :return: the deserialized message
+        """
+        return pickle.loads(data)
 
     def hash(self) -> str:
         """
         Computes a SHA-1 hash of the message.
+        :return: the hash of the message
         """
         hasher = hashlib.sha1()
         hasher.update(self.type.name.encode('utf-8'))
@@ -48,4 +58,8 @@ class Message:
         return hasher.hexdigest()
 
     def __repr__(self) -> str:
+        """
+        String representation of the message
+        :return: string representation of the message
+        """
         return f"Message(type={self.type}, sender={self.sender})"

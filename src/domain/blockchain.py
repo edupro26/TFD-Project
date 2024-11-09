@@ -14,8 +14,7 @@ class BlockChain:
     def add_block(self, block: Block):
         """
         Adds a block to the blockchain
-        :param block:
-        :return:
+        :param block: the block to be added
         """
         self.chain.append(block)
         self.__votes[block.hash()] = set()
@@ -23,15 +22,15 @@ class BlockChain:
     def add_vote(self, block: Block, node_id: int):
         """
         Adds a vote to a Block of the blockchain
-        :param block:
-        :param node_id:
-        :return:
+        :param block: the block to be voted
+        :param node_id: the id of the node that voted
         """
         self.__votes[block.hash()].add(node_id)
 
     def update_finalization(self):
         """
-        Checks the finalization of blocks and finalizes if it identifies three consecutive notarized blocks with consecutive epochs
+        Checks the finalization of blocks and finalizes if it identifies
+        three consecutive notarized blocks with consecutive epochs.
         If so, it finalizes the second block and all its previous blocks
         """
         start = self.__finalized_chain[-1].length if self.__finalized_chain else 0
@@ -49,25 +48,30 @@ class BlockChain:
     def __check_notarization(self, block: Block) -> bool:
         """
         Checks if a block is notarized
-        :param block:
-        :return:
+        :param block: the block to be checked
+        :return: True if the block is notarized, False otherwise
         """
         return len(self.__votes[block.hash()]) > self.num_nodes / 2
 
     def get_finalized_chain(self) -> list[Block]:
         """
         Returns the finalized chain
+        :return: the finalized chain
         """
         return self.__finalized_chain
 
     def length(self):
         """
         Returns the length of the blockchain
-        :return:
+        :return: the length of the blockchain
         """
         return len(self.chain) - 1
 
     def __str__(self):
+        """
+        Returns a string representation of the finalized blockchain
+        :return: the string representation of the finalized blockchain
+        """
         chain_str = f"Blockchain (Node {self.node_id}):\n"
         for block in self.__finalized_chain:
             chain_str += f"Block {block.length}:\n"
@@ -78,7 +82,7 @@ class BlockChain:
     def __getitem__(self, item):
         """
         Returns the block at the given index
-        :param item:
-        :return:
+        :param item: the index of the block
+        :return: the block at the given index
         """
         return self.chain[item]

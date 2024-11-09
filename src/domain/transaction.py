@@ -16,6 +16,7 @@ class Transaction:
     def serialize(self) -> bytes:
         """
         Serialize the transaction (convert object to bytes)
+        :return: the serialized transaction
         """
         return pickle.dumps(self)
 
@@ -23,8 +24,15 @@ class Transaction:
     def deserialize(data) -> 'Transaction':
         """
         Deserialize the transaction (convert from bytes to object)
+        :param data: the serialized transaction
+        :return: the deserialized transaction
         """
         return pickle.loads(data)
 
     def __repr__(self) -> str:
-        return f"Transaction(sender={self.sender}, receiver={self.receiver}, tx_id={self.tx_id}, amount={self.amount})"
+        """
+        String representation of the transaction
+        :return: string representation of the transaction
+        """
+        return (f"Transaction(sender={self.sender}, receiver={self.receiver},"
+                f" tx_id={self.tx_id}, amount={self.amount})")

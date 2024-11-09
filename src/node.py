@@ -163,8 +163,9 @@ class Node:
             elapsed_time = time.time() - start_time
             time.sleep(self.epoch_duration - elapsed_time)
             self.current_epoch += 1
-            print(f"Chain: {self.blockchain.chain}")  # TODO Remove
-            print(f"Finalized Chain: {[(i.epoch, i.length) for i in self.blockchain.get_finalized_chain()]}") # TODO Remove
+            print(f"Epoch {self.current_epoch}")
+            print(f"Chain: {self.blockchain.chain}")
+            print(f"Finalized Chain: {[(i.epoch, i.length) for i in self.blockchain.get_finalized_chain()]}")
 
     def run_leader_phase(self):
         """

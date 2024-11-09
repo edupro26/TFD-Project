@@ -11,6 +11,8 @@ recent_tx_ids = {}
 def generate_tx_id(sender: int) -> int:
     """
     Generate a unique, random tx_id for the given sender.
+    :param sender: the sender of the transaction
+    :return: the generated tx_id
     """
     if sender not in recent_tx_ids:
         recent_tx_ids[sender] = deque(maxlen=1000)
@@ -30,7 +32,6 @@ def run_workload(base_port: int, num_nodes: int):
     :param num_nodes: the number of nodes
     """
     print("Starting workload...")
-    # TODO Create workload threads in the future
     try:
         while True:
             sender = random.randint(1, 20)

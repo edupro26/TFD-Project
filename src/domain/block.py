@@ -15,8 +15,16 @@ class Block:
         self.transactions = transactions
 
     def hash(self) -> bytes:
+        """
+        Generates the hash of the block
+        :return: the hash of the block
+        """
         block_str = f"{self.previous_hash}{self.epoch}{self.length}{[str(t) for t in self.transactions]}"
         return hashlib.sha1(block_str.encode()).digest()
 
     def __repr__(self) -> str:
+        """
+        String representation of the block
+        :return: string representation of the block
+        """
         return f"Block(epoch={self.epoch}, length={self.length})"

@@ -1,6 +1,14 @@
-import sys, subprocess
+import subprocess
+import sys
+
 
 def start_nodes(base_port, num_nodes, epoch_duration):
+    """
+    Starts the nodes each in a separate terminal
+    :param base_port: the base port number
+    :param num_nodes: the number of nodes
+    :param epoch_duration: the duration of an epoch in seconds
+    """
     for i in range(num_nodes):
         port = base_port + i
         command = [
@@ -16,6 +24,6 @@ def start_nodes(base_port, num_nodes, epoch_duration):
             subprocess.Popen(["start", "cmd", "/K"] + command, shell=True)
         elif sys.platform == "Linux": # TODO verify if this works on Linux
             subprocess.Popen(["gnome-terminal", "--"] + command)
-        else: # TODO verify if this works on MacOS
+        else:
             apple_script_command = f'''osascript -e 'tell application "Terminal" to do script "{" ".join(command)}"' '''
             subprocess.Popen(apple_script_command, shell=True)
