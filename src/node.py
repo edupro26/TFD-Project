@@ -194,6 +194,7 @@ class Node:
         """
         finalized_blocks = set()
 
+        # iterate over the blockchain to find all combinations of three consecutive blocks
         for i in range(len(self.blockchain) - 2):
             # three consecutive blocks
             block1, block2, block3 = self.blockchain[i:i+3]
