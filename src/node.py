@@ -25,13 +25,12 @@ class Node:
         self.port = port
         self.id = id
         self.peers = [(self.host, int(p)) for p in peers]
-        self.running = False
+        self.epoch_duration = epoch_duration
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.pending_tx = []
+        self.running = False
         self.current_leader = 0
         self.current_epoch = 0
-
-        self.epoch_duration = epoch_duration
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
         self.received_messages = deque(maxlen=200) # avoid processing the same message multiple times
 
@@ -56,19 +55,20 @@ class Node:
         """
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(len(self.peers))
+        time.sleep(2)  # wait for other nodes to start
         print(f"Node {self.id} started on {self.host}:{self.port}")
         threading.Thread(target=self.run_protocol).start()
         while self.running:
             try:
                 client_socket, address = self.server_socket.accept()
-                threading.Thread(target=self.listen_to_peers, args=(client_socket,)).start()
+                threading.Thread(target=self.handle_connection, args=(client_socket,)).start()
             except socket.error:
                 break
 
-    def listen_to_peers(self, client_socket: socket.socket):
+    def handle_connection(self, client_socket: socket.socket):
         """
-        Listens to incoming messages from peers
-        @param client_socket: the socket to listen to
+        Handles a connection established with this node
+        :param client_socket: the socket connected to the client
         """
         try:
             header = client_socket.recv(3).decode('utf-8') # read the first 3 bytes as the header
@@ -159,13 +159,13 @@ class Node:
             if self.current_leader == self.id: # if this node is the leader
                 self.run_leader_phase()
 
+            print(f"------------------- Epoch {self.current_epoch} -------------------")
+            print(self.blockchain)
+
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
             time.sleep(self.epoch_duration - elapsed_time)
             self.current_epoch += 1
-            print(f"Epoch {self.current_epoch}")
-            print(f"Chain: {self.blockchain.chain}")
-            print(f"Finalized Chain: {[(i.epoch, i.length) for i in self.blockchain.get_finalized_chain()]}")
 
     def run_leader_phase(self):
         """
