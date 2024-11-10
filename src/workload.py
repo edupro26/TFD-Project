@@ -32,6 +32,7 @@ def run_workload(base_port: int, num_nodes: int):
     :param num_nodes: the number of nodes
     """
     print("Starting workload...")
+    time.sleep(2)  # wait for nodes to start
     try:
         while True:
             sender = random.randint(1, 20)

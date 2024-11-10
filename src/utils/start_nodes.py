@@ -11,6 +11,7 @@ def start_nodes(base_port, num_nodes, epoch_duration):
     """
     for i in range(num_nodes):
         port = base_port + i
+        node_title = f"Node {i} - Port {port}"
         command = [
             sys.executable,
             "node.py",
@@ -21,9 +22,9 @@ def start_nodes(base_port, num_nodes, epoch_duration):
         ] + [str(base_port + j) for j in range(num_nodes) if j != i]
 
         if sys.platform == "win32":
-            subprocess.Popen(["start", "cmd", "/K"] + command, shell=True)
-        elif sys.platform == "Linux": # TODO verify if this works on Linux
-            subprocess.Popen(["gnome-terminal", "--"] + command)
-        else:
+            subprocess.Popen(["start", "cmd", "/K", f"title {node_title} &&"] + command, shell=True)
+        elif sys.platform == "darwin":
             apple_script_command = f'''osascript -e 'tell application "Terminal" to do script "{" ".join(command)}"' '''
             subprocess.Popen(apple_script_command, shell=True)
+        else:
+            subprocess.Popen(["gnome-terminal", "--title", node_title, "--"] + command)
