@@ -2,12 +2,82 @@
 
 \section{Introduction}
 
+The primary goal of this phase of the project was to implement the Streamlet protocol with fault tolerance (nodes can crash). Streamlet is a consensus protocol that operates under partial synchrony, tolerating faults and node crashes without compromising the blockchain's integrity. It allows nodes to propose, vote, and finalize blocks in the blockchain, ensuring that the blockchain remains consistent and synchronized across all nodes.
+
 \section{Objectives}
+
+The main objectives of this phase were:
+\begin{itemize}
+    \item To implement the Streamlet consensus protocol with crash fault tolerance in a distributed environment, allowing nodes to propose, vote, and finalize blocks in the blockchain.
+    \item To ensure the blockchain remains synchronized and consistent across nodes despite node crashes.
+    \item To test the protocol's functionality with multiple nodes, validating its fault tolerance and consensus properties.
+\end{itemize}
+
+\clearpage
 
 \section{Protocol Description}
 
+The Streamlet protocol is a method for achieving consensus in a distributed system, particularly useful for implementing distributed ledgers like blockchains. It operates in epochs, each consisting of rounds, where nodes propose blocks, vote on blocks, and finalize blocks.
+
+
+\subsection*{Protocol Overview}
+
+\begin{itemize}
+    \item The protocol progresses in a series of epochs, each with a designated leader node randomly selected using a hash function known to all nodes. This leader is the one who proposes new blocks to add to the blockchain.
+    \item In each epoch, the leader proposes a new block based on the longest notarized chain it knows of. The block contains the hash of the previous block, the epoch number, the block length and the transactions.
+    \item A block becomes notarized when it receives votes from the majority of distinct nodes ($> n/2$).
+    \item Finalization occurs when a node observes 3 consecutive notarized blocks with consecutive epoch numbers in the chain, with the second of those three blocks and all its predecessors being finalized.
+\end{itemize}
+
+\subsection*{Why Streamlet?}
+
+\begin{itemize}
+    \item \textbf{Simplicity}: Streamlet uses a unified propose-vote paradigm, eliminating the need for complex recovery paths found in traditional consensus protocols like PBFT \cite{pbft} and Paxos \cite{paxos}.
+    \item \textbf{Partial Synchrony and Partition Tolerance}: Streamlet guarantees consistency even in partially synchronous networks with message delays. It remains consistent even if the network is partitioned.
+    \item \textbf{Liveness}: During periods of synchrony where messages are delivered within a specific timeframe, the protocol achieves liveness with an expected confirmation delay.
+    \item \textbf{Fault Tolerance}: In this implementation of Streamlet, nodes can crash and recover without compromising the blockchain's integrity, up until $n/2$ crash faults.   
+\end{itemize}
+
+\clearpage
+
 \section{Implementation}
+
+We implemented this protocol in Python \cite{python}, across multiple modules for better organization and modularity. 
+
+\subsection*{Data Structures}
+
+\begin{itemize}
+    \item \textbf{Transaction:} Includes the sender id, receiver id, transaction id and amount. 
+    
+    \item \textbf{Block:} Contains the previous hash, the epoch number, the length of the chain and the list of transactions in the block.
+    
+    \item \textbf{Message:} Contains its type (\texttt{PROPOSE, VOTE, ECHO}) defined as an enum, the content (\texttt{Block} or \texttt{Message}) and the sender id.
+    
+    \item \textbf{Blockchain:} Maintains the ordered chain of blocks and is responsible for adding new blocks and managing votes and finalization. This class was implemented to achieve more modularity and reusability, allowing for easy integration with the Node class. This also improves the code's readability, maintainability and testing.
+
+    \item \textbf{Node:} Encapsulates each network participant, handling for the broadcasting of transactions, messages receiving and running the protocol, enabling each node to act independently while remaining synchronized within the distributed network. It uses the \texttt{Blockchain} class to manage the blockchain and the consensus protocol, as well as the other classes to manage data.
+\end{itemize}
+
+\subsection*{Other Modules}
+
+\paragraph{args.py}
+Contains the program argument and the command-line argument parsing, which allows to configure for example the number of nodes to start and the epoch duration.
+
+\paragraph{start\_nodes.py}
+Initializes multiple nodes and starts the protocol, simulating a distributed network environment in different processes, each with a console.
+
+\paragraph{workload.py}
+Simulates transaction workloads, generating random transactions and broadcasting them to the network.
+
+\paragraph{main.py}
+Main script that initializes the nodes and starts the protocol, simulating a distributed network environment.
+
+\clearpage
 
 \section{Testing}
 
+TODO
+
 \section{Conclusion}
+
+TODO
