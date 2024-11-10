@@ -39,6 +39,7 @@ delaying of nodes, lost epochs and node crashes.
 
 - `domain`: This directory contains data strutctures used to maintain the blockchain
 - `utils`: This directory contains utility functions and scripts
+- `workload.py`: Script that simulates a workload of clients submitting transactions
 - `node.py`: Node class that represents a node in the network
 - `main.py`: Main script that launches the blockchain
 
