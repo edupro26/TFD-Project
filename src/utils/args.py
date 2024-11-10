@@ -1,5 +1,11 @@
 import argparse
 
+def workloads_args():
+    parser = argparse.ArgumentParser(description="workload.py --base-port <base-port> --num-nodes <num-nodes>")
+    parser.add_argument("--base-port", type=int, required=True, help="Base port number for the nodes")
+    parser.add_argument("--num-nodes", type=int, required=True, help="Number of nodes")
+    return parser.parse_args()
+
 def parse_program_args():
     parser = argparse.ArgumentParser(
         description="node.py --id <id> --epoch-duration <epoch-duration> --port <port> --peers <peerss>"

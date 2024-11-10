@@ -1,4 +1,4 @@
-from utils.workload import run_workload
+from workload import run_workload
 from utils.start_nodes import start_nodes
 from utils.args import get_command_line_args
 

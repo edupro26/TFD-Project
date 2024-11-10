@@ -3,7 +3,7 @@ import socket
 import time
 from collections import deque
 from domain.transaction import Transaction
-
+from utils.args import workloads_args
 
 # Dictionary to keep track of recent tx_ids
 recent_tx_ids = {}
@@ -54,3 +54,7 @@ def run_workload(base_port: int, num_nodes: int):
             time.sleep(random.uniform(1, 5))
     except KeyboardInterrupt:
         print("\nWorkload interrupted. Exiting...")
+
+if __name__ == "__main__":
+    args = workloads_args()
+    run_workload(args.base_port, args.num_nodes)
