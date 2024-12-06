@@ -4,7 +4,7 @@ import sys
 from utils.utils import load_config
 
 if __name__ == "__main__":
-    config = load_config("./config.yaml")
+    config = load_config("../config.yaml")
     print("Configuration loaded")
 
     nodes = config['nodes']
