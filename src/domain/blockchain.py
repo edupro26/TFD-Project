@@ -6,7 +6,7 @@ class BlockChain:
         self.node_id = node_id
         self.num_nodes = num_nodes
         self.chain = [Block(previous_hash=b'0', epoch=0, length=0, transactions=[])]
-        self.finalized_chain = self.chain.copy()
+        self.finalized_chain = [self.chain[0]]
         self.votes = {}
 
     def add_block(self, block: Block):
@@ -32,17 +32,15 @@ class BlockChain:
         three consecutive notarized blocks with consecutive epochs.
         If so, it finalizes the second block and all its previous blocks
         """
-        start = self.finalized_chain[-1].length if self.finalized_chain else 0
-        for i in range(start, self.length() - 2):
+        for i in range(self.finalized_chain[-1].length, self.length() - 2):
             # three consecutive blocks
             blocks = self.chain[i:i + 3]
-            block1, block2, block3 = blocks
             epochs = [block.epoch for block in blocks]
             all_notarized = all(self.__check_notarization(block) for block in blocks)
             all_consecutive = all(epochs[i]+1 == epochs[i+1] for i in range(len(epochs) - 1))
 
             if all_notarized and all_consecutive:
-                self.finalized_chain.extend([block1, block2])
+                self.finalized_chain.append(blocks[1]) # finalize the second block
 
     def __check_notarization(self, block: Block) -> bool:
         """
@@ -50,6 +48,8 @@ class BlockChain:
         :param block: the block to be checked
         :return: True if the block is notarized, False otherwise
         """
+        if block.genesis: # genesis block is always notarized
+            return True
         return len(self.votes[block.hash()]) > self.num_nodes / 2
 
     def length(self):

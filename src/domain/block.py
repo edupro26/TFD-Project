@@ -28,3 +28,7 @@ class Block:
         :return: string representation of the block
         """
         return f"Block(epoch={self.epoch}, length={self.length})"
+    
+    @property
+    def genesis(self) -> bool:
+        return self.previous_hash == b'0'

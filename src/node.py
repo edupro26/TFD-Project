@@ -30,7 +30,7 @@ class Node:
         self.pending_tx = []
         self.running = False
         self.current_leader = 0
-        self.current_epoch = 0
+        self.current_epoch = 1
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
         self.received_messages = deque(maxlen=200) # avoid processing the same message multiple times
 
@@ -155,11 +155,13 @@ class Node:
         print(f"Node {self.id} running protocol")
         while self.running:
             start_time = time.time()
+
+            print(f"------------------- Epoch {self.current_epoch} -------------------")
+            
             self.elect_leader(self.current_epoch) # elect the new leader of the epoch
             if self.current_leader == self.id: # if this node is the leader
                 self.run_leader_phase()
 
-            print(f"------------------- Epoch {self.current_epoch} -------------------")
             print(self.blockchain)
 
             # wait for the epoch duration
