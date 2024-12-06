@@ -7,7 +7,7 @@ from collections import deque
 
 from domain.blockchain import BlockChain
 from domain.transaction import Transaction
-from utils.args import parse_program_args
+from utils.utils import parse_program_args
 from domain.block import Block
 from domain.message import Message, MessageType
 
