@@ -1,3 +1,4 @@
+import random
 import socket
 import threading
 import time
@@ -57,6 +58,7 @@ class Node:
         self.server_socket.listen(len(self.peers))
         time.sleep(2)  # wait for other nodes to start
         print(f"Node {self.id} started on {self.host}:{self.port}")
+        threading.Thread(target=self.generate_tx).start()
         threading.Thread(target=self.run_protocol).start()
         while self.running:
             try:
@@ -65,21 +67,34 @@ class Node:
             except socket.error:
                 break
 
+    def generate_tx(self):
+        """
+        Simulates clients submitting transactions to this node.
+        """
+        while self.running:
+            sender = random.randint(1, 1000)
+            receiver = random.randint(1, 1000)
+            amount = random.uniform(0.01, 1000)
+            # Ensure sender and receiver are different
+            while receiver == sender:
+                receiver = random.randint(1, 1000)
+
+            # Generate a unique tx ID
+            nonce = random.randint(0, 1000000)
+            id = hashlib.sha1(f"{sender}{nonce}".encode()).hexdigest()
+
+            self.pending_tx.append(Transaction(sender, receiver, int(id, 16), amount))
+            time.sleep(random.randint(2, 6))
+
     def handle_connection(self, client_socket: socket.socket):
         """
         Handles a connection established with this node
         :param client_socket: the socket connected to the client
         """
         try:
-            header = client_socket.recv(3).decode('utf-8') # read the first 3 bytes as the header
             data = client_socket.recv(1024)
-            match header:
-                case "MSG":
-                    if message := Message.deserialize(data):
-                        self.handle_message(message)
-                case "TXN":
-                    if transaction := Transaction.deserialize(data):
-                        self.add_transaction(transaction)
+            if message := Message.deserialize(data):
+                self.handle_message(message)
         except OSError as e:
             print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
         finally:
@@ -93,17 +108,10 @@ class Node:
             try:
                 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 peer_socket.connect(peer)
-                peer_socket.sendall(b"MSG" + message.serialize())
+                peer_socket.sendall(message.serialize())
                 peer_socket.close()
             except Exception as e:
                 print(f"Failed to send to {peer}: {e}")
-
-    def add_transaction(self, transaction: Transaction):
-        """
-        Adds a transaction to the pending transactions
-        @param transaction: the transaction to add
-        """
-        self.pending_tx.append(transaction)
 
     def handle_message(self, message: Message):
         """
