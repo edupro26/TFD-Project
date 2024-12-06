@@ -6,7 +6,7 @@ class BlockChain:
         self.node_id = node_id
         self.num_nodes = num_nodes
         self.chain = [Block(previous_hash=b'0', epoch=0, length=0, transactions=[])]
-        self.finalized_chain = []
+        self.finalized_chain = self.chain.copy()
         self.votes = {}
 
     def add_block(self, block: Block):
@@ -33,7 +33,7 @@ class BlockChain:
         If so, it finalizes the second block and all its previous blocks
         """
         start = self.finalized_chain[-1].length if self.finalized_chain else 0
-        for i in range(start + 1, self.length() - 2):
+        for i in range(start, self.length() - 2):
             # three consecutive blocks
             blocks = self.chain[i:i + 3]
             block1, block2, block3 = blocks
