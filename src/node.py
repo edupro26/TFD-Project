@@ -13,7 +13,7 @@ from domain.message import Message, MessageType
 
 
 class Node:
-    def __init__(self, host: str, port: int, id: int, peers: list[int], epoch_duration: int):
+    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int):
         """
         Initializes a new node
         @param host: the host of the node
@@ -25,7 +25,7 @@ class Node:
         self.host = host
         self.port = port
         self.id = id
-        self.peers = [(self.host, int(p)) for p in peers]
+        self.peers = [(peer.split(':')[0], int(peer.split(':')[1])) for peer in peers]
         self.epoch_duration = epoch_duration
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.pending_tx = []
@@ -210,9 +210,8 @@ class Node:
 
 
 if __name__ == "__main__":
-    host = 'localhost'
     args = parse_program_args()
-    node = Node(host, args.port, args.id, args.peers, args.epoch_duration)
+    node = Node(args.host, args.port, args.id, args.peers, args.epoch_duration)
     node.start()
 
     # keep the main thread alive

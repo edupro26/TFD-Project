@@ -1,0 +1,18 @@
+nodes:
+  - id: 0
+    ip: 127.0.0.1
+    port: 8000
+  - id: 1
+    ip: 127.0.0.1
+    port: 8001
+  - id: 2
+    ip: 127.0.0.1
+    port: 8002
+  - id: 3
+    ip: 127.0.0.1
+    port: 8003
+  - id: 4
+    ip: 127.0.0.1
+    port: 8004
+
+epoch_duration: 8  # Duration of each epoch in seconds
