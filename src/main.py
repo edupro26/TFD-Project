@@ -1,11 +1,16 @@
 import subprocess
 import sys
-
-from utils.utils import load_config
+from utils.utils import *
 
 if __name__ == "__main__":
     config = load_config("../config.yaml")
     print("Configuration loaded")
+
+    now = datetime.now().timestamp()
+    start_time = get_time(config['start_time']).timestamp()
+
+    if start_time < now:
+        raise ValueError(f"Invalid start time {config['start_time']}\nPlease update the configuration file")
 
     nodes = config['nodes']
     for node in nodes:

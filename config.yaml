@@ -19,7 +19,7 @@ nodes:
 epoch_duration: 8
 
 # Time for all nodes to start
-start_time: '18:08:50'
+start_time: '16:08:50'
 
 # Seed for leader election
 seed: '42'
