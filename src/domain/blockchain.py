@@ -8,10 +8,8 @@ class BlockChain:
         self.node_id = node_id
         self.num_nodes = num_nodes
         self.votes = {}
-
         genesis = Block(previous_hash=b'0', epoch=0, length=0, transactions=[])
-        genesis.isFinalized = True
-
+        genesis.is_finalized = True
         self.chain = [genesis]
 
     def add_block(self, block: Block):
@@ -50,8 +48,8 @@ class BlockChain:
 
                 if all_notarized and all_consecutive:
                     for j in range(i + 1):
-                        if not self.chain[j].isFinalized:
-                            self.chain[j].isFinalized = True
+                        if not self.chain[j].is_finalized:
+                            self.chain[j].is_finalized = True
 
     def check_notarization(self, block: Block) -> bool:
         """
@@ -85,7 +83,7 @@ class BlockChain:
         """
         chain_repr = self.__format_chain(self.chain, "Blockchain")
         not_notarized = [block.epoch for block in self.chain if not self.check_notarization(block)]
-        finalized_chain = [block for block in self.chain if block.isFinalized]
+        finalized_chain = [block for block in self.chain if block.is_finalized]
         finalized_repr = self.__format_chain(finalized_chain, "Finalized")
         return f"{chain_repr}\nNot Notarized: {not_notarized}\n{finalized_repr}"
 

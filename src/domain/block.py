@@ -13,7 +13,7 @@ class Block:
         self.epoch = epoch
         self.length = length
         self.transactions = transactions
-        self.isFinalized = False
+        self.is_finalized = False
 
     def hash(self) -> bytes:
         """
