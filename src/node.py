@@ -4,7 +4,7 @@ import threading
 import time
 import hashlib
 from collections import deque
-
+from queue import Queue
 from domain.blockchain import BlockChain
 from domain.transaction import Transaction
 from domain.block import Block
@@ -40,6 +40,7 @@ class Node:
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
         self.received_messages = deque(maxlen=200) # avoid processing the same message multiple times
         self.state = State.WAITING
+        self.msg_queue = Queue()
 
     def start(self):
         """
@@ -117,10 +118,14 @@ class Node:
             while self.running:
                 bytes = client_socket.recv(4)
                 length = int.from_bytes(bytes, byteorder='big')
-
+        
                 data = client_socket.recv(length)
                 if message := Message.deserialize(data):
-                    self.handle_message(message)
+                    self.msg_queue.put(message)
+                    # TODO check if in confusion epoch
+                    while self.msg_queue.qsize() > 0:
+                        message = self.msg_queue.get()
+                        self.handle_message(message)
         except EOFError:
             pass
         except socket.error as e:
@@ -247,7 +252,7 @@ class Node:
             # TODO: recover state
             return
 
-        print("Starting at: ", start_time_obj)
+        print("Starting at", start_time_obj)
         time_to_wait = max(0, int(start_time - current_time)) # ensure time is not negative
         time.sleep(time_to_wait)
         print("Starting node...")

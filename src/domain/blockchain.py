@@ -83,15 +83,15 @@ class BlockChain:
         String representation of both the blockchain and the finalized chain
         :return: the string representation of the blockchain and the finalized chain
         """
-        if self.length() >= 10:
-            chain = "Blockchain: ... <- " + " <- ".join(f"[{b.epoch}]" for b in self.chain[-3:])
-        else:
-            chain = "Blockchain: " + " <- ".join(f"[{b.epoch}]" for b in self.chain)
+        chain_repr = self.__format_chain(self.chain, "Blockchain")
+        not_notarized = [block.epoch for block in self.chain if not self.check_notarization(block)]
+        finalized_chain = [block for block in self.chain if block.isFinalized]
+        finalized_repr = self.__format_chain(finalized_chain, "Finalized")
+        return f"{chain_repr}\nNot Notarized: {not_notarized}\n{finalized_repr}"
 
-        finalized_blocks = [b for b in self.chain if b.isFinalized]
-        if len(finalized_blocks) >= 10:
-            finalized = "Finalized: ... <- " + " <- ".join(f"[{b.epoch}]" for b in finalized_blocks[-3:])
-        else:
-            finalized = "Finalized: " + " <- ".join(f"[{b.epoch}]" for b in finalized_blocks)
-
-        return chain + "\n" + finalized
+    def __format_chain(self, chain, label):
+        max_blocks = 10
+        few_blocks = len(chain) < max_blocks
+        blocks = [str(b.epoch) for b in chain]
+        blocks_to_show = blocks if few_blocks else ["...", *blocks[-max_blocks+1:]]
+        return f"{label}: {" <- ".join(blocks_to_show)}"
