@@ -18,5 +18,6 @@ def parse_program_args():
     parser.add_argument("--host", type=str, required=True, help="IP address for this node")
     parser.add_argument("--port", type=int, required=True, help="Port number for this node")
     parser.add_argument('--epoch-duration', type=int, required=True, help='Epoch duration in seconds')
+    parser.add_argument("--seed", type=int, required=True, help="Seed for the leader election")
     parser.add_argument("--peers", nargs="*", required=True, help="List of peer ports")
     return parser.parse_args()

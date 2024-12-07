@@ -17,3 +17,6 @@ nodes:
 
 # Should not be lower than 2 seconds
 epoch_duration: 8
+
+# Seed for leader election
+seed: 42

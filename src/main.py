@@ -8,7 +8,6 @@ if __name__ == "__main__":
     print("Configuration loaded")
 
     nodes = config['nodes']
-    epoch_duration = config['epoch_duration']
     for node in nodes:
         command = [
             sys.executable,
@@ -16,7 +15,8 @@ if __name__ == "__main__":
             "--id", str(node['id']),
             "--host", node['ip'],
             "--port", str(node['port']),
-            "--epoch-duration", str(epoch_duration),
+            "--epoch-duration", str(config['epoch_duration']),
+            "--seed", str(config['seed']),
             "--peers",
         ] + [f"{peer['ip']}:{peer['port']}" for peer in nodes if peer['id'] != node['id']]
 

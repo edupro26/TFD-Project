@@ -13,7 +13,7 @@ from domain.message import Message, MessageType
 
 
 class Node:
-    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int):
+    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int, seed: int):
         """
         Initializes a new node
         @param host: the host of the node
@@ -21,12 +21,14 @@ class Node:
         @param id: the id of the node
         @param peers: the list of neighboring nodes
         @param epoch_duration: the duration of an epoch in seconds
+        @param seed: the seed for the leader election
         """
         self.host = host
         self.port = port
         self.id = id
         self.peers = [(peer.split(':')[0], int(peer.split(':')[1])) for peer in peers]
         self.epoch_duration = epoch_duration
+        self.random = random.Random(seed)
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.pending_tx = []
         self.running = False
@@ -166,7 +168,8 @@ class Node:
 
             print(f"------------------- Epoch {self.current_epoch} -------------------")
             
-            self.elect_leader(self.current_epoch) # elect the new leader of the epoch
+            self.elect_leader() # elect the new leader of the epoch
+            print(f"Leader: Node {self.current_leader}")
             if self.current_leader == self.id: # if this node is the leader
                 self.run_leader_phase()
 
@@ -197,21 +200,16 @@ class Node:
         propose_message = Message(MessageType.PROPOSE, new_block, self.id)
         self.urb_broadcast(propose_message)
 
-    def elect_leader(self, epoch: int):
+    def elect_leader(self):
         """
-        @param epoch: epoch number
-        Determine the leader of the epoch based on a VRF (Verifiable Random Function).
-        It is "random" but verifiable. Concatenate the current leader with the epoch and hash it
-        @param epoch: the epoch number
+        Elects the leader of the current epoch
         """
-        input = f"{self.current_leader}{epoch}" # concatenate node id and epoch as the input
-        hash = hashlib.sha1(input.encode()).hexdigest()
-        self.current_leader = int(hash, 16) % (len(self.peers) + 1)
+        self.current_leader = self.random.randint(0, len(self.peers))
 
 
 if __name__ == "__main__":
     args = parse_program_args()
-    node = Node(args.host, args.port, args.id, args.peers, args.epoch_duration)
+    node = Node(args.host, args.port, args.id, args.peers, args.epoch_duration, args.seed)
     node.start()
 
     # keep the main thread alive
