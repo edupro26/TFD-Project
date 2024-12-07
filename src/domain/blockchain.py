@@ -72,9 +72,14 @@ class BlockChain:
         String representation of both the blockchain and the finalized chain
         :return: the string representation of the blockchain and the finalized chain
         """
-        str = "Blockchain: ["
-        str += ", ".join(f"(e={b.epoch}, l={b.length})" for b in self.chain)
-        str += "]\nFinalized Chain: ["
-        str += ", ".join(f"(e={b.epoch}, l={b.length})" for b in self.finalized_chain)
-        str += "]"
-        return str
+        if self.length() >= 10:
+            chain = "Blockchain: ... <- " + " <- ".join(f"[{b.epoch}]" for b in self.chain[-3:])
+        else:
+            chain = "Blockchain: " + " <- ".join(f"[{b.epoch}]" for b in self.chain)
+
+        if len(self.finalized_chain) >= 10:
+            finalized = "Finalized: ... <- " + " <- ".join(f"[{b.epoch}]" for b in self.finalized_chain[-3:])
+        else:
+            finalized = "Finalized: " + " <- ".join(f"[{b.epoch}]" for b in self.finalized_chain)
+
+        return chain + "\n" + finalized
