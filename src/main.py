@@ -18,14 +18,7 @@ if __name__ == "__main__":
             sys.executable,
             "node.py",
             "--id", str(node['id']),
-            "--host", node['ip'],
-            "--port", str(node['port']),
-            "--epoch-duration", str(config['epoch_duration']),
-            "--seed", config['seed'],
-            "--start-time", config['start_time'],
-            "--peers",
-        ] + [f"{peer['ip']}:{peer['port']}" for peer in nodes if peer['id'] != node['id']]
-
+        ]
         node_title = f"Node {node['ip']}:{node['port']}"
         if sys.platform == "win32":
             subprocess.Popen(["start", "cmd", "/K", f"title {node_title} &&"] + command, shell=True)

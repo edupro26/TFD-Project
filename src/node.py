@@ -14,20 +14,20 @@ from utils.utils import *
 
 
 class Node:
-    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int, seed: int, start_time: str):
+    def __init__(self, id: int, host: str, port: int, peers: list[tuple[str, int]], epoch_duration: int, seed: int, start_time: str):
         """
         Initializes a new node
+        @param id: the id of the node
         @param host: the host of the node
         @param port: the port of the node
-        @param id: the id of the node
         @param peers: the list of neighboring nodes
         @param epoch_duration: the duration of an epoch in seconds
         @param seed: the seed for the leader election
         """
+        self.id = id
         self.host = host
         self.port = port
-        self.id = id
-        self.peers = [(peer.split(':')[0], int(peer.split(':')[1])) for peer in peers]
+        self.peers = peers
         self.epoch_duration = epoch_duration
         self.random = random.Random(seed)
         self.start_time = start_time
@@ -255,7 +255,15 @@ class Node:
 
 if __name__ == "__main__":
     args = parse_program_args()
-    node = Node(args.host, args.port, args.id, args.peers, args.epoch_duration, args.seed, args.start_time)
+    id = args.id
+    config = load_config("../config.yaml")
+    nodes = config['nodes']
+    host, port = next((p['ip'], p['port']) for p in nodes if p['id'] == id)
+    peers = [(n['ip'], n['port']) for n in nodes if n['id'] != id]
+    epoch_duration = config['epoch_duration']
+    seed = config['seed']
+    start_time = config['start_time']
+    node = Node(id, host, port, peers, epoch_duration, seed, start_time)
     node.start()
 
     # keep the main thread alive
