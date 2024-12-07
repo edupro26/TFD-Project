@@ -4,13 +4,14 @@ from utils.utils import *
 
 if __name__ == "__main__":
     config = load_config("../config.yaml")
-    print("Configuration loaded")
+    print("Configuration file loaded")
 
-    now = datetime.now().timestamp()
-    start_time = get_time(config['start_time']).timestamp()
+    wait_for = config['wait_for']
+    wait_for_time = get_time_plus(datetime.now(), wait_for)
 
-    if start_time < now:
-        raise ValueError(f"Invalid start time {config['start_time']}\nPlease update the configuration file")
+    set_config("../config.yaml", config, {"start_time": wait_for_time.strftime('%H:%M:%S')})
+
+    print("Wait time set to", wait_for_time)
 
     nodes = config['nodes']
     for node in nodes:

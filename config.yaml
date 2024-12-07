@@ -1,25 +1,20 @@
-nodes:
-  - id: 0
-    ip: 127.0.0.1
-    port: 8000
-  - id: 1
-    ip: 127.0.0.1
-    port: 8001
-  - id: 2
-    ip: 127.0.0.1
-    port: 8002
-  - id: 3
-    ip: 127.0.0.1
-    port: 8003
-  - id: 4
-    ip: 127.0.0.1
-    port: 8004
-
-# Should not be lower than 2 seconds
 epoch_duration: 8
-
-# Time to wait before starting node execution
-start_time: '18:47:20'
-
-# Seed for leader election
+nodes:
+- id: 0
+  ip: 127.0.0.1
+  port: 8000
+- id: 1
+  ip: 127.0.0.1
+  port: 8001
+- id: 2
+  ip: 127.0.0.1
+  port: 8002
+- id: 3
+  ip: 127.0.0.1
+  port: 8003
+- id: 4
+  ip: 127.0.0.1
+  port: 8004
 seed: '42'
+start_time: '18:56:14'
+wait_for: 5
