@@ -45,7 +45,7 @@ class Node:
         """
         Starts the node
         """
-        self.wait_for_nodes()
+        self.wait_start_time()
         self.running = True
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(len(self.peers))
@@ -67,7 +67,6 @@ class Node:
         """
         Starts the server socket and listens for incoming connections
         """
-        time.sleep(2)  # wait for other nodes to start
         print(f"Node {self.id} started on {self.host}:{self.port}")
         threading.Thread(target=self.generate_tx).start()
         threading.Thread(target=self.run_protocol).start()
@@ -234,7 +233,7 @@ class Node:
         """
         self.current_leader = self.random.randint(0, len(self.peers))
 
-    def wait_for_nodes(self):
+    def wait_start_time(self):
         """
         Waits for time to start
         """
@@ -249,7 +248,7 @@ class Node:
             return
 
         print("Starting at: ", start_time_obj)
-        time_to_wait = max(0, start_time - current_time) # ensure time is not negative
+        time_to_wait = max(0, int(start_time - current_time)) # ensure time is not negative
         time.sleep(time_to_wait)
         print("Starting node...")
         self.state = State.RUNNING
