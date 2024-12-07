@@ -15,4 +15,5 @@ nodes:
     ip: 127.0.0.1
     port: 8004
 
-epoch_duration: 8  # Duration of each epoch in seconds
+# Should not be lower than 2 seconds
+epoch_duration: 8

@@ -84,7 +84,7 @@ class Node:
             id = hashlib.sha1(f"{sender}{nonce}".encode()).hexdigest()
 
             self.pending_tx.append(Transaction(sender, receiver, int(id, 16), amount))
-            time.sleep(random.randint(2, 6))
+            time.sleep(self.epoch_duration / 2)
 
     def handle_connection(self, client_socket: socket.socket):
         """
@@ -92,7 +92,7 @@ class Node:
         :param client_socket: the socket connected to the client
         """
         try:
-            data = client_socket.recv(1024)
+            data = client_socket.recv(4096)
             if message := Message.deserialize(data):
                 self.handle_message(message)
         except OSError as e:
