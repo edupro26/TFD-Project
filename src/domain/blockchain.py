@@ -1,3 +1,5 @@
+import queue
+
 from domain.block import Block
 
 
@@ -5,9 +7,12 @@ class BlockChain:
     def __init__(self, node_id: int, num_nodes: int):
         self.node_id = node_id
         self.num_nodes = num_nodes
-        self.chain = [Block(previous_hash=b'0', epoch=0, length=0, transactions=[])]
-        self.finalized_chain = [self.chain[0]]
         self.votes = {}
+
+        genesis = Block(previous_hash=b'0', epoch=0, length=0, transactions=[])
+        genesis.isFinalized = True
+
+        self.chain = [genesis]
 
     def add_block(self, block: Block):
         """
@@ -32,17 +37,23 @@ class BlockChain:
         three consecutive notarized blocks with consecutive epochs.
         If so, it finalizes the second block and all its previous blocks
         """
-        for i in range(self.finalized_chain[-1].length, self.length() - 2):
-            # three consecutive blocks
-            blocks = self.chain[i:i + 3]
-            epochs = [block.epoch for block in blocks]
-            all_notarized = all(self.__check_notarization(block) for block in blocks)
-            all_consecutive = all(epochs[i]+1 == epochs[i+1] for i in range(len(epochs) - 1))
+        if len(self.chain) >= 3:
+            for i in range(1, self.length() - 1):
+                previous = self.chain[i - 1]
+                current = self.chain[i]
+                next = self.chain[i + 1]
 
-            if all_notarized and all_consecutive:
-                self.finalized_chain.append(blocks[1]) # finalize the second block
+                blocks = [previous, current, next]
+                epochs = [block.epoch for block in blocks]
+                all_notarized = all(self.check_notarization(i) for i in blocks)
+                all_consecutive = all(epochs[i] + 1 == epochs[i + 1] for i in range(len(epochs) - 1))
 
-    def __check_notarization(self, block: Block) -> bool:
+                if all_notarized and all_consecutive:
+                    for j in range(i + 1):
+                        if not self.chain[j].isFinalized:
+                            self.chain[j].isFinalized = True
+
+    def check_notarization(self, block: Block) -> bool:
         """
         Checks if a block is notarized
         :param block: the block to be checked
@@ -77,9 +88,10 @@ class BlockChain:
         else:
             chain = "Blockchain: " + " <- ".join(f"[{b.epoch}]" for b in self.chain)
 
-        if len(self.finalized_chain) >= 10:
-            finalized = "Finalized: ... <- " + " <- ".join(f"[{b.epoch}]" for b in self.finalized_chain[-3:])
+        finalized_blocks = [b for b in self.chain if b.isFinalized]
+        if len(finalized_blocks) >= 10:
+            finalized = "Finalized: ... <- " + " <- ".join(f"[{b.epoch}]" for b in finalized_blocks[-3:])
         else:
-            finalized = "Finalized: " + " <- ".join(f"[{b.epoch}]" for b in self.finalized_chain)
+            finalized = "Finalized: " + " <- ".join(f"[{b.epoch}]" for b in finalized_blocks)
 
         return chain + "\n" + finalized

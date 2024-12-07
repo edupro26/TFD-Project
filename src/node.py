@@ -183,7 +183,6 @@ class Node:
         @param message: the message containing the vote
         """
         self.blockchain.add_vote(message.content, message.sender)
-        self.blockchain.update_finalization() # check notarization and finalization
 
     def run_protocol(self):
         """
@@ -196,16 +195,17 @@ class Node:
             print(f"------------------- Epoch {self.current_epoch} -------------------")
             
             self.elect_leader() # elect the new leader of the epoch
-            print(f"Leader: Node {self.current_leader}")
             if self.current_leader == self.id: # if this node is the leader
                 self.run_leader_phase()
-
-            print(self.blockchain)
 
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
             time.sleep(self.epoch_duration - elapsed_time)
+            self.blockchain.update_finalization()
             self.current_epoch += 1
+
+            print(f"Leader: Node {self.current_leader}")
+            print(self.blockchain)
 
     def run_leader_phase(self):
         """
