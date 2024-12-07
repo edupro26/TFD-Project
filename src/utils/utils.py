@@ -8,7 +8,7 @@ def load_config(path: str) -> dict:
     """
     with open(path, 'r') as file:
         config = yaml.safe_load(file)
-    return config
+        return config
 
 def parse_program_args():
     parser = argparse.ArgumentParser(
@@ -20,4 +20,5 @@ def parse_program_args():
     parser.add_argument('--epoch-duration', type=int, required=True, help='Epoch duration in seconds')
     parser.add_argument("--seed", type=int, required=True, help="Seed for the leader election")
     parser.add_argument("--peers", nargs="*", required=True, help="List of peer ports")
+    parser.add_argument("--start-time", type=str, required=False, help="Time for the node to start running")
     return parser.parse_args()

@@ -1,22 +1,25 @@
 nodes:
   - id: 0
-    ip: 127.0.0.1
+    ip: '127.0.0.1'
     port: 8000
   - id: 1
-    ip: 127.0.0.1
+    ip: '127.0.0.1'
     port: 8001
   - id: 2
-    ip: 127.0.0.1
+    ip: '127.0.0.1'
     port: 8002
   - id: 3
-    ip: 127.0.0.1
+    ip: '127.0.0.1'
     port: 8003
   - id: 4
-    ip: 127.0.0.1
+    ip: '127.0.0.1'
     port: 8004
 
 # Should not be lower than 2 seconds
 epoch_duration: 8
 
+# Time for all nodes to start
+start_time: '17:08:50'
+
 # Seed for leader election
-seed: 42
+seed: '42'

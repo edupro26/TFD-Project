@@ -4,6 +4,7 @@ import threading
 import time
 import hashlib
 from collections import deque
+from datetime import datetime
 
 from domain.blockchain import BlockChain
 from domain.transaction import Transaction
@@ -13,7 +14,7 @@ from domain.message import Message, MessageType
 
 
 class Node:
-    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int, seed: int):
+    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int, seed: int, start_time: str=None):
         """
         Initializes a new node
         @param host: the host of the node
@@ -29,6 +30,7 @@ class Node:
         self.peers = [(peer.split(':')[0], int(peer.split(':')[1])) for peer in peers]
         self.epoch_duration = epoch_duration
         self.random = random.Random(seed)
+        self.start_time = start_time
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.peer_sockets = {}
         self.pending_tx = []
@@ -42,6 +44,7 @@ class Node:
         """
         Starts the node
         """
+        self.wait_for_nodes()
         self.running = True
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(len(self.peers))
@@ -230,10 +233,26 @@ class Node:
         """
         self.current_leader = self.random.randint(0, len(self.peers))
 
+    def wait_for_nodes(self):
+        """
+        Waits for time to start
+        """
+        if self.start_time:
+            now = datetime.now()
+            start_time_obj = datetime.strptime(self.start_time, '%H:%M:%S').replace(
+                year=now.year, month=now.month, day=now.day
+            )
+            start_time = start_time_obj.timestamp()
+            current_time = time.time()
+
+            print("Starting at: ", start_time_obj)
+            time_to_wait = max(0, start_time - current_time) # ensure time is not negative
+            time.sleep(time_to_wait)
+            print("Starting node...")
 
 if __name__ == "__main__":
     args = parse_program_args()
-    node = Node(args.host, args.port, args.id, args.peers, args.epoch_duration, args.seed)
+    node = Node(args.host, args.port, args.id, args.peers, args.epoch_duration, args.seed, args.start_time)
     node.start()
 
     # keep the main thread alive

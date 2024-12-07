@@ -16,7 +16,8 @@ if __name__ == "__main__":
             "--host", node['ip'],
             "--port", str(node['port']),
             "--epoch-duration", str(config['epoch_duration']),
-            "--seed", str(config['seed']),
+            "--seed", config['seed'],
+            "--start-time", config['start_time'],
             "--peers",
         ] + [f"{peer['ip']}:{peer['port']}" for peer in nodes if peer['id'] != node['id']]
 
