@@ -1,5 +1,6 @@
 import argparse
 import yaml
+from datetime import datetime
 
 def load_config(path: str) -> dict:
     """
@@ -22,3 +23,10 @@ def parse_program_args():
     parser.add_argument("--peers", nargs="*", required=True, help="List of peer ports")
     parser.add_argument("--start-time", type=str, required=False, help="Time for the node to start running")
     return parser.parse_args()
+
+
+def get_time(time: str) -> datetime:
+    now = datetime.now()
+    return datetime.strptime(time, '%H:%M:%S').replace(
+        year=now.year, month=now.month, day=now.day
+    )

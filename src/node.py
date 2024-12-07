@@ -4,17 +4,17 @@ import threading
 import time
 import hashlib
 from collections import deque
-from datetime import datetime
 
 from domain.blockchain import BlockChain
 from domain.transaction import Transaction
-from utils.utils import parse_program_args
 from domain.block import Block
 from domain.message import Message, MessageType
+from domain.state import State
+from utils.utils import *
 
 
 class Node:
-    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int, seed: int, start_time: str=None):
+    def __init__(self, host: str, port: int, id: int, peers: list[str], epoch_duration: int, seed: int, start_time: str):
         """
         Initializes a new node
         @param host: the host of the node
@@ -39,6 +39,7 @@ class Node:
         self.current_epoch = 1
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
         self.received_messages = deque(maxlen=200) # avoid processing the same message multiple times
+        self.state = State.WAITING
 
     def start(self):
         """
@@ -237,18 +238,21 @@ class Node:
         """
         Waits for time to start
         """
-        if self.start_time:
-            now = datetime.now()
-            start_time_obj = datetime.strptime(self.start_time, '%H:%M:%S').replace(
-                year=now.year, month=now.month, day=now.day
-            )
-            start_time = start_time_obj.timestamp()
-            current_time = time.time()
+        start_time_obj = get_time(self.start_time)
+        start_time = start_time_obj.timestamp()
+        current_time = time.time()
 
-            print("Starting at: ", start_time_obj)
-            time_to_wait = max(0, start_time - current_time) # ensure time is not negative
-            time.sleep(time_to_wait)
-            print("Starting node...")
+        if current_time > start_time: # if time has passed, start immediately because we are late
+            self.state = State.RECOVERED # recovered after crash
+            print("Recovered after crash, starting immediately...")
+            # TODO: recover state
+            return
+
+        print("Starting at: ", start_time_obj)
+        time_to_wait = max(0, start_time - current_time) # ensure time is not negative
+        time.sleep(time_to_wait)
+        print("Starting node...")
+        self.state = State.RUNNING
 
 if __name__ == "__main__":
     args = parse_program_args()
