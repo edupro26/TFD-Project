@@ -30,6 +30,7 @@ class Node:
         self.epoch_duration = epoch_duration
         self.random = random.Random(seed)
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.peer_sockets = {}
         self.pending_tx = []
         self.running = False
         self.current_leader = 0
@@ -42,8 +43,11 @@ class Node:
         Starts the node
         """
         self.running = True
-        server_thread = threading.Thread(target=self.start_server, daemon=True)
-        server_thread.start()
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen(len(self.peers))
+        for peer in self.peers:
+            self.connect_to_peer(peer)
+        threading.Thread(target=self.start_server, daemon=True).start()
 
     def stop(self):
         """
@@ -51,13 +55,14 @@ class Node:
         """
         self.running = False
         self.server_socket.close()
+        for socket in self.peer_sockets.values():
+            if socket is not None:
+                socket.close()
 
     def start_server(self):
         """
         Starts the server socket and listens for incoming connections
         """
-        self.server_socket.bind((self.host, self.port))
-        self.server_socket.listen(len(self.peers))
         time.sleep(2)  # wait for other nodes to start
         print(f"Node {self.id} started on {self.host}:{self.port}")
         threading.Thread(target=self.generate_tx).start()
@@ -68,6 +73,18 @@ class Node:
                 threading.Thread(target=self.handle_connection, args=(client_socket,)).start()
             except socket.error:
                 break
+
+    def connect_to_peer(self, peer: tuple[str, int]):
+        """
+        Establishes a connection to a single peer and adds it to the connection pool.
+        """
+        try:
+            peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            peer_socket.connect(peer)
+            self.peer_sockets[peer] = peer_socket
+        except socket.error:
+            self.peer_sockets[peer] = None
 
     def generate_tx(self):
         """
@@ -94,10 +111,16 @@ class Node:
         :param client_socket: the socket connected to the client
         """
         try:
-            data = client_socket.recv(4096)
-            if message := Message.deserialize(data):
-                self.handle_message(message)
-        except OSError as e:
+            while self.running:
+                bytes = client_socket.recv(4)
+                length = int.from_bytes(bytes, byteorder='big')
+
+                data = client_socket.recv(length)
+                if message := Message.deserialize(data):
+                    self.handle_message(message)
+        except EOFError:
+            pass
+        except socket.error as e:
             print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
         finally:
             client_socket.close()
@@ -106,14 +129,15 @@ class Node:
         """
         URB-broadcasts a message to all peers
         """
-        for peer in self.peers:
+        for peer, peer_socket in self.peer_sockets.items():
             try:
-                peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                peer_socket.connect(peer)
-                peer_socket.sendall(message.serialize())
-                peer_socket.close()
-            except Exception as e:
-                print(f"Failed to send to {peer}: {e}")
+                if peer_socket is not None:
+                    serialized = message.serialize()
+                    length = len(serialized).to_bytes(4, byteorder='big')
+                    peer_socket.sendall(length + serialized)
+            except socket.error:
+                self.peer_sockets[peer].close()
+                self.peer_sockets[peer] = None
 
     def handle_message(self, message: Message):
         """
