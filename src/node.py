@@ -81,19 +81,18 @@ class Node:
         """
         if self.state == State.RECOVERED:
             print("Initiated node recovery")
-            # TODO: crash recovery logic
+            self.current_epoch = self.deduce_current_epoch()
 
-        elif self.state == State.RUNNING:
-            threading.Thread(target=self.generate_tx).start()
-            threading.Thread(target=self.run_protocol).start()
-            threading.Thread(target=self.process_messages).start()
-            threading.Thread(target=self.reconnect_peers).start()
-            while True:
-                try:
-                    client_socket, address = self.server_socket.accept()
-                    threading.Thread(target=self.handle_connection, args=(client_socket,)).start()
-                except socket.error:
-                    break
+        threading.Thread(target=self.generate_tx).start()
+        threading.Thread(target=self.run_protocol).start()
+        threading.Thread(target=self.process_messages).start()
+        threading.Thread(target=self.reconnect_peers).start()
+        while True:
+            try:
+                client_socket, address = self.server_socket.accept()
+                threading.Thread(target=self.handle_connection, args=(client_socket,)).start()
+            except socket.error:
+                break
 
     def process_messages(self):
         """
@@ -182,6 +181,9 @@ class Node:
         """
         URB-broadcasts a message to all peers
         """
+        if self.state != State.RUNNING:
+            return
+
         for peer, peer_socket in self.peer_sockets.items():
             try:
                 if peer_socket is not None:
@@ -240,6 +242,7 @@ class Node:
         print(f"Node {self.id} running protocol")
         while True:
             start_time = time.time()
+            self.syncronize_epoch()
 
             print(f"------------------- Epoch {self.current_epoch} -------------------")
             
@@ -253,8 +256,10 @@ class Node:
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
             time.sleep(max(0, self.epoch_duration - elapsed_time))
-            self.current_epoch += 1
             self.blockchain.update_finalization()
+            self.state = self.next_state()
+            
+            self.current_epoch += 1
 
             print(f"Leader: Node {self.current_leader}")
             print(self.blockchain)
@@ -331,6 +336,27 @@ class Node:
         current_time = time.time()
         start_time = get_time(self.start_time).timestamp()
         return int((current_time - start_time) / self.epoch_duration) + 1
+    
+    def syncronize_epoch(self):
+        next_epoch = self.deduce_current_epoch()
+        # calculate the time to wait until the next epoch
+        current_time = time.time()
+        start_time = get_time(self.start_time).timestamp()
+        time_to_wait = max(0, int(start_time + next_epoch * self.epoch_duration - current_time))
+        time.sleep(time_to_wait)
+
+    def next_state(self) -> State:
+        """
+        Determines the next state of the node
+        """
+        if self.state == State.RECOVERED:
+            # check if has seen 3 consecutive notarized blocks
+            notarized = len(self.blockchain.get_notarized_blocks())
+            if notarized >= 3:
+                print("Recovered node has seen 3 notarized blocks, starting protocol normally...")
+                return State.RUNNING
+
+        return self.state
 
 if __name__ == "__main__":
     args = parse_program_args()

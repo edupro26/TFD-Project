@@ -7,11 +7,12 @@ class BlockChain:
         self.node_id = node_id
         self.num_nodes = num_nodes
         self.votes = {}  # tracks votes for each block by hash
-        genesis = Block(previous_hash=b'0', epoch=0, length=0, transactions=[])
-        genesis.is_finalized = True
-        self.finalized_chain = [genesis] # contains only finalized blocks
-        self.not_finalized_blocks = {genesis.hash(): genesis} # tree-like structure to manage forks
+        self.genesis = Block(previous_hash=b'0', epoch=0, length=0, transactions=[])
+        self.genesis.is_finalized = True
+        self.finalized_chain = [self.genesis] # contains only finalized blocks
+        self.not_finalized_blocks = {self.genesis.hash(): self.genesis} # tree-like structure to manage forks
         self.lock = RLock() # reentrant lock for thread safety
+        self.last_block = self.genesis
 
     def add_block(self, block: Block):
         """
@@ -20,10 +21,10 @@ class BlockChain:
         """
         with self.lock:
             parent_hash = block.previous_hash
-            if parent_hash in self.not_finalized_blocks:
-                parent_block = self.not_finalized_blocks[parent_hash]
-                parent_block.children.append(block) # child parent relationship
-                self.not_finalized_blocks[block.hash()] = block
+            parent_block = self.not_finalized_blocks.get(parent_hash, self.genesis)
+            parent_block.children.append(block) # child parent relationship
+            self.not_finalized_blocks[block.hash()] = block
+            self.last_block = block
 
     def add_vote(self, block: Block, node_id: int):
         """
@@ -141,21 +142,21 @@ class BlockChain:
 
             return forks
 
-    def get_non_notarized_blocks(self):
-        """
-        Retrieves all blocks in the blockchain that are not yet notarized
-        :return: A list of non-notarized blocks
-        """
+    
+    def get_notarized_blocks(self):
         with self.lock:
-            non_notarized = [block for block in self.not_finalized_blocks.values() if not self.check_notarization(block)]
-            return non_notarized
+            return [block for block in self.not_finalized_blocks.values() if self.check_notarization(block)]
+    
+    def get_non_notarized_blocks(self):
+        with self.lock:
+            return list(set(self.not_finalized_blocks.values()) - set(self.get_notarized_blocks()))
 
     def length(self):
         """
-        Returns the length of the finalized blockchain
-        :return: The length of the finalized blockchain
+        Returns the length of the blockchain
+        :return: The length of the blockchain
         """
-        return len(self.finalized_chain) - 1
+        return self.last_block.length - 1
 
     def __getitem__(self, item):
         """
