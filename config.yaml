@@ -18,4 +18,4 @@ nodes:
 seed: 42 # random seed for leader election
 wait_for: 5 # seconds to wait for all nodes to start
 confusion_start: 2 # epoch to start confusion
-confusion_duration: 2 # epochs to keep confusion
+confusion_duration: 0 # epochs to keep confusion

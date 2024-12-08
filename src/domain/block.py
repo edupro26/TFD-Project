@@ -23,6 +23,14 @@ class Block:
         """
         block_str = f"{self.previous_hash}{self.epoch}{self.length}{[str(t) for t in self.transactions]}"
         return hashlib.sha1(block_str.encode()).digest()
+    
+
+    def __hash__(self) -> int:
+        """
+        Hash function for the block
+        :return: hash of the block
+        """
+        return int.from_bytes(self.hash(), byteorder='big')
 
     def __repr__(self) -> str:
         """
@@ -30,7 +38,7 @@ class Block:
         :return: string representation of the block
         """
         return f"[{self.epoch}]"
-    
+
     @property
     def genesis(self) -> bool:
         return self.previous_hash == b'0'

@@ -257,7 +257,7 @@ class Node:
        
         # find the head of the longest notarized chain
         parent_block = max(
-            self.blockchain.blocks_tree.values(),
+            self.blockchain.blocks_dict.values(),
             key=lambda block: block.length if self.blockchain.check_notarization(block) else 0,
             default=None
         )
