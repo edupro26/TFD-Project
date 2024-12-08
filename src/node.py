@@ -324,6 +324,14 @@ class Node:
             return False
         return self.confusion_start <= self.current_epoch < self.confusion_start + self.confusion_duration
 
+    def deduce_current_epoch(self):
+        """
+        Deduces the current epoch based on the current time and the start time
+        """
+        current_time = time.time()
+        start_time = get_time(self.start_time).timestamp()
+        return int((current_time - start_time) / self.epoch_duration) + 1
+
 if __name__ == "__main__":
     args = parse_program_args()
     id = args.id
