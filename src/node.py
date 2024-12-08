@@ -87,6 +87,7 @@ class Node:
             threading.Thread(target=self.generate_tx).start()
             threading.Thread(target=self.run_protocol).start()
             threading.Thread(target=self.process_messages).start()
+            threading.Thread(target=self.reconnect_peers).start()
             while True:
                 try:
                     client_socket, address = self.server_socket.accept()
@@ -116,13 +117,27 @@ class Node:
         """
         Establishes a connection to a single peer and adds it to the connection pool
         """
+        peer_socket = None
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             peer_socket.connect(peer)
             self.peer_sockets[peer] = peer_socket
         except socket.error:
+            peer_socket.close()
             self.peer_sockets[peer] = None
+
+    def reconnect_peers(self):
+        """
+        Tries to reconnect to all peers
+        """
+        while self.running:
+            for peer in self.peers:
+                if self.peer_sockets[peer] is None:
+                    self.connect_to_peer(peer)
+                    if self.peer_sockets[peer] is not None:
+                        print(f"Reconnected to peer {peer}")
+            time.sleep(self.epoch_duration / 2)
 
     def generate_tx(self):
         """
@@ -169,12 +184,6 @@ class Node:
         """
         for peer, peer_socket in self.peer_sockets.items():
             try:
-                # TODO
-                # If the peer socket is None, try to reconnect
-                # if peer_socket is None:
-                #     self.connect_to_peer(peer)
-                #     peer_socket = self.peer_sockets[peer]
-
                 if peer_socket is not None:
                     serialized = message.serialize()
                     length = len(serialized).to_bytes(4, byteorder='big')
