@@ -34,7 +34,6 @@ class Node:
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.peer_sockets = {}
         self.pending_tx = []
-        self.running = False
         self.current_leader = 0
         self.current_epoch = 1
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
@@ -47,18 +46,17 @@ class Node:
         Starts the node
         """
         self.wait_start_time()
-        self.running = True
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(len(self.peers))
         for peer in self.peers:
             self.connect_to_peer(peer)
+        print(f"Node {self.id} started on {self.host}:{self.port}")
         threading.Thread(target=self.start_server, daemon=True).start()
 
     def stop(self):
         """
         Stops the node
         """
-        self.running = False
         self.server_socket.close()
         for socket in self.peer_sockets.values():
             if socket is not None:
@@ -68,15 +66,18 @@ class Node:
         """
         Starts the server socket and listens for incoming connections
         """
-        print(f"Node {self.id} started on {self.host}:{self.port}")
-        threading.Thread(target=self.generate_tx).start()
-        threading.Thread(target=self.run_protocol).start()
-        while self.running:
-            try:
-                client_socket, address = self.server_socket.accept()
-                threading.Thread(target=self.handle_connection, args=(client_socket,)).start()
-            except socket.error:
-                break
+        if self.state == State.RECOVERED:
+            print("Initiated node recovery")
+            # TODO: crash recovery logic
+        elif self.state == State.RUNNING:
+            threading.Thread(target=self.generate_tx).start()
+            threading.Thread(target=self.run_protocol).start()
+            while True:
+                try:
+                    client_socket, address = self.server_socket.accept()
+                    threading.Thread(target=self.handle_connection, args=(client_socket,)).start()
+                except socket.error:
+                    break
 
     def connect_to_peer(self, peer: tuple[str, int]):
         """
@@ -94,7 +95,7 @@ class Node:
         """
         Simulates clients submitting transactions to this node.
         """
-        while self.running:
+        while True:
             sender = random.randint(1, 1000)
             receiver = random.randint(1, 1000)
             amount = random.uniform(0.01, 1000)
@@ -115,7 +116,7 @@ class Node:
         :param client_socket: the socket connected to the client
         """
         try:
-            while self.running:
+            while True:
                 bytes = client_socket.recv(4)
                 length = int.from_bytes(bytes, byteorder='big')
         
@@ -126,7 +127,7 @@ class Node:
         except EOFError:
             pass
         except socket.error as e:
-            print(f"Node {self.id}: error listening to peers: {e} - while running? {self.running}")
+            print(f"Error receiving data from {client_socket.getpeername()}")
         finally:
             client_socket.close()
 
@@ -136,12 +137,16 @@ class Node:
         """
         for peer, peer_socket in self.peer_sockets.items():
             try:
+                # If the peer socket is None, try to reconnect
+                if peer_socket is None:
+                    self.connect_to_peer(peer)
+                    peer_socket = self.peer_sockets[peer]
+
                 if peer_socket is not None:
                     serialized = message.serialize()
                     length = len(serialized).to_bytes(4, byteorder='big')
                     peer_socket.sendall(length + serialized)
             except socket.error:
-                self.peer_sockets[peer].close()
                 self.peer_sockets[peer] = None
 
     def handle_message(self, message: Message):
@@ -191,7 +196,7 @@ class Node:
         Main logic of the node containing the protocol
         """
         print(f"Node {self.id} running protocol")
-        while self.running:
+        while True:
             start_time = time.time()
 
             print(f"------------------- Epoch {self.current_epoch} -------------------")
@@ -243,10 +248,9 @@ class Node:
         start_time = start_time_obj.timestamp()
         current_time = time.time()
 
-        if current_time > start_time: # if time has passed, start immediately because we are late
-            self.state = State.RECOVERED # recovered after crash
-            print("Recovered after crash, starting immediately...")
-            # TODO: recover state
+        # Detect if it is a recovery after a crash
+        if current_time > start_time:
+            self.state = State.RECOVERED
             return
 
         print("Starting at", start_time_obj)
