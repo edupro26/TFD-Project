@@ -169,10 +169,11 @@ class Node:
         """
         for peer, peer_socket in self.peer_sockets.items():
             try:
+                # TODO
                 # If the peer socket is None, try to reconnect
-                if peer_socket is None:
-                    self.connect_to_peer(peer)
-                    peer_socket = self.peer_sockets[peer]
+                # if peer_socket is None:
+                #     self.connect_to_peer(peer)
+                #     peer_socket = self.peer_sockets[peer]
 
                 if peer_socket is not None:
                     serialized = message.serialize()
@@ -257,7 +258,7 @@ class Node:
        
         # find the head of the longest notarized chain
         parent_block = max(
-            self.blockchain.blocks_tree.values(),
+            self.blockchain.not_finalized_blocks.values(),
             key=lambda block: block.length if self.blockchain.check_notarization(block) else 0,
             default=None
         )
