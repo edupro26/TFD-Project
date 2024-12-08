@@ -14,7 +14,18 @@ from utils.utils import *
 
 
 class Node:
-    def __init__(self, id: int, host: str, port: int, peers: list[tuple[str, int]], epoch_duration: int, seed: int, start_time: str):
+    def __init__(
+        self,
+        id: int,
+        host: str,
+        port: int,
+        peers: list[tuple[str, int]],
+        epoch_duration: int,
+        seed: int,
+        start_time: str,
+        confusion_start: int,
+        confusion_duration: int
+    ):
         """
         Initializes a new node
         @param id: the id of the node
@@ -39,7 +50,8 @@ class Node:
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
         self.received_messages = deque(maxlen=200) # avoid processing the same message multiple times
         self.state = State.WAITING
-        # self.msg_queue = Queue()
+        self.confusion_start = confusion_start
+        self.confusion_duration = confusion_duration
 
     def start(self):
         """
@@ -216,23 +228,34 @@ class Node:
 
     def run_leader_phase(self):
         """
-        Runs the leader phase by proposing a new block and broadcasting it
+        Runs the leader phase by proposing a new block and broadcasting it.
         """
-        # propose new block
-        previous_block = self.blockchain[-1]
-        previous_hash = previous_block.hash()
+        # Find the head of the longest notarized chain
+        longest_chain = max(
+            self.blockchain.blocks_tree.values(),
+            key=lambda block: block.length if self.blockchain.check_notarization(block) else 0,
+            default=None
+        )
+        if longest_chain is None:
+            print("No notarized chain found.")
+            return
+
+        # Propose a new block
+        previous_hash = longest_chain.hash()
         new_block = Block(
             previous_hash=previous_hash,
             epoch=self.current_epoch,
-            length=self.blockchain.length() + 1,
+            length=longest_chain.length + 1,
             transactions=self.pending_tx.copy()
         )
-        # clear the pending transactions
+        # Clear the pending transactions
         self.pending_tx.clear()
 
-        # broadcast the proposed block
+        # Broadcast the proposed block
+        print(f"Node {self.id} proposing block: {new_block}")
         propose_message = Message(MessageType.PROPOSE, new_block, self.id)
         self.urb_broadcast(propose_message)
+
 
     def elect_leader(self):
         """
@@ -268,8 +291,10 @@ if __name__ == "__main__":
     peers = [(n['ip'], n['port']) for n in nodes if n['id'] != id]
     epoch_duration = config['epoch_duration']
     seed = config['seed']
-    start_time = load_config("../start_time.yaml")['start_time']
-    node = Node(id, host, port, peers, epoch_duration, seed, start_time)
+    confusion_start = int(config['confusion_start'])
+    confusion_duration = int(config['confusion_duration'])
+    start_time = read_file('../start_time.txt')
+    node = Node(id, host, port, peers, epoch_duration, seed, start_time, confusion_start, confusion_duration)
     node.start()
 
     # keep the main thread alive

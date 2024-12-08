@@ -8,10 +8,10 @@ if __name__ == "__main__":
 
     wait_for = config['wait_for']
     wait_for_time = get_time_plus(datetime.now(), wait_for)
-    with open('../start_time.yaml', 'w') as file:
-        yaml.dump({"start_time": wait_for_time.strftime('%H:%M:%S')}, file)
+    with open('../start_time.txt', 'w') as f:
+        f.write(wait_for_time.strftime('%H:%M:%S'))
 
-    print("Wait time set to", wait_for_time)
+    print("Start time set to", wait_for_time)
 
     nodes = config['nodes']
     for node in nodes:

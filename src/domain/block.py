@@ -14,6 +14,7 @@ class Block:
         self.length = length
         self.transactions = transactions
         self.is_finalized = False
+        self.children = []
 
     def hash(self) -> bytes:
         """

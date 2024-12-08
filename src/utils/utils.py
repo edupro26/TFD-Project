@@ -10,6 +10,15 @@ def load_config(path: str) -> dict:
     with open(path, 'r') as file:
         return yaml.safe_load(file)
 
+def read_file(path: str) -> str:
+    """
+    Reads the content of a file.
+    :param path: Path to the file.
+    :return: The content of the file.
+    """
+    with open(path, 'r') as f:
+        return f.read()
+
 def parse_program_args():
     parser = argparse.ArgumentParser(
         description="node.py --id <id>"

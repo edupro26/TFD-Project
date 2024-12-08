@@ -1,4 +1,4 @@
-epoch_duration: 6
+epoch_duration: 3 # seconds
 nodes:
 - id: 0
   ip: 127.0.0.1
@@ -15,5 +15,7 @@ nodes:
 - id: 4
   ip: 127.0.0.1
   port: 8004
-seed: 42
-wait_for: 5
+seed: 42 # random seed for leader election
+wait_for: 5 # seconds to wait for all nodes to start
+confusion_start: 2 # epoch to start confusion
+confusion_duration: 0 # epochs to keep confusion
