@@ -108,8 +108,6 @@ class BlockChain:
             reachable_blocks = self.get_descendants(last_finalized_hash)
             self.not_finalized_blocks = {b.hash(): b for b in reachable_blocks}
 
-            print(f"Fork stabilized by finalizing up to {to_finalize[-1]}")
-
     def get_descendants(self, start_hash):
         """
         Retrieves all descendants of a block in the blockchain
@@ -177,4 +175,4 @@ class BlockChain:
         forks = self.get_forks()
         forks_repr = "\n\t".join(parse_chain([str(b) for b in fork], "Fork") for fork in forks) if len(forks) > 1 else "No forks"
         non_notarized = self.get_non_notarized_blocks()
-        return f"\Not Finalized Blocks:{blocks_repr}\n{chain_repr}\nNon-Notarized blocks: {non_notarized}\n\t{forks_repr}\n"
+        return f"\nNot Finalized Blocks:{blocks_repr}\n{chain_repr}\nNon-Notarized blocks: {non_notarized}\n\t{forks_repr}\n"
