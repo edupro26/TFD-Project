@@ -140,7 +140,8 @@ class Node:
                     serialized = message.serialize()
                     length = len(serialized).to_bytes(4, byteorder='big')
                     peer_socket.sendall(length + serialized)
-            except socket.error:
+            except socket.error as e:
+                print(f"Error broadcasting to peer")
                 self.peer_sockets[peer].close()
                 self.peer_sockets[peer] = None
 

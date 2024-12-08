@@ -17,7 +17,6 @@ class BlockChain:
         :param block: the block to be added
         """
         self.chain.append(block)
-        self.votes[block.hash()] = set()
 
     def add_vote(self, block: Block, node_id: int):
         """
@@ -25,9 +24,10 @@ class BlockChain:
         :param block: the block to be voted
         :param node_id: the id of the node that voted
         """
-        if block.hash() in self.votes:
-            self.votes[block.hash()].add(node_id)
-
+        if block.hash() not in self.votes:
+            self.votes[block.hash()] = set()
+        self.votes[block.hash()].add(node_id)
+        
     def update_finalization(self):
         """
         Checks the finalization of blocks and finalizes if it identifies
@@ -35,18 +35,23 @@ class BlockChain:
         If so, it finalizes the second block and all its previous blocks
         """
         if len(self.chain) < 3:
-            return  # not enough blocks
-
+            return # not enough blocks
+        
         for i in range(0, self.length()):
             blocks = self.chain[i:i + 3]
+
             if len(blocks) < 3:
-                break
+                break # not enough blocks
+
+            if blocks[2].is_finalized:
+                continue # already finalized blocks
+            
             epochs = [block.epoch for block in blocks]
-            all_notarized = all(self.check_notarization(block) for block in blocks)
-            all_consecutive = all(epochs[k] + 1 == epochs[k + 1] for k in range(len(epochs) - 1))
+            all_notarized = all(self.check_notarization(b) for b in blocks)
+            all_consecutive = all(epochs[j] + 1 == epochs[j + 1] for j in range(len(epochs) - 1))
 
             if all_notarized and all_consecutive:
-                for j in range(i + 1):
+                for j in range(i + 1): # finalize all blocks up until the second one
                     self.chain[j].is_finalized = True
 
     def check_notarization(self, block: Block) -> bool:
@@ -57,7 +62,9 @@ class BlockChain:
         """
         if block.genesis: # genesis block is always notarized
             return True
-        return len(self.votes[block.hash()]) > self.num_nodes / 2
+    
+        votes = self.votes.get(block.hash(), set())
+        return len(votes) > self.num_nodes / 2
 
     def length(self):
         """
