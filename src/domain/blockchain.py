@@ -1,4 +1,3 @@
-
 from domain.block import Block
 from utils.utils import parse_chain
 from threading import RLock
@@ -11,7 +10,7 @@ class BlockChain:
         genesis = Block(previous_hash=b'0', epoch=0, length=0, transactions=[])
         genesis.is_finalized = True
         self.finalized_chain = [genesis] # contains only finalized blocks
-        self.blocks_dict = {genesis.hash(): genesis} # tree-like structure to manage forks
+        self.not_finalized_blocks = {genesis.hash(): genesis} # tree-like structure to manage forks
         self.lock = RLock() # reentrant lock for thread safety
 
     def add_block(self, block: Block):
@@ -21,12 +20,10 @@ class BlockChain:
         """
         with self.lock:
             parent_hash = block.previous_hash
-            if parent_hash in self.blocks_dict:
-                parent_block = self.blocks_dict[parent_hash]
-                parent_block.children.append(block) # maintain parent-child relationship
-                self.blocks_dict[block.hash()] = block
-            else:
-                raise ValueError(f"Parent block {parent_hash} not found in the blockchain")
+            if parent_hash in self.not_finalized_blocks:
+                parent_block = self.not_finalized_blocks[parent_hash]
+                parent_block.children.append(block) # child parent relationship
+                self.not_finalized_blocks[block.hash()] = block
 
     def add_vote(self, block: Block, node_id: int):
         """
@@ -49,17 +46,16 @@ class BlockChain:
             longest_fork = []
             forks = self.get_forks()
             for fork in forks:
-                # Check for three consecutive notarized blocks
-                for i in range(len(fork) - 2): # check all triplets
+                # check for three consecutive notarized blocks
+                for i in range(len(fork) - 2):
                     triplet = fork[i:i+3]
                     all_notarized = all(self.check_notarization(b) for b in triplet)
                     all_consecutive = all(triplet[j].epoch + 1 == triplet[j+1].epoch for j in range(2))
                     if all_notarized and all_consecutive:
                         if len(fork) > len(longest_fork):
                             longest_fork = fork
-
-            # Finalize the longest notarized fork
-            if longest_fork:
+                
+            if longest_fork: # finalize the longest notarized fork
                 self.stabilize_fork(longest_fork)
 
     def check_notarization(self, block: Block) -> bool:
@@ -84,7 +80,7 @@ class BlockChain:
             fork = []
             while block:
                 fork.append(block)
-                block = next((b for b in self.blocks_dict.values() if b.hash() == block.previous_hash), None)
+                block = next((b for b in self.not_finalized_blocks.values() if b.hash() == block.previous_hash), None)
             return fork[::-1] # return the fork in chronological order
 
 
@@ -104,13 +100,13 @@ class BlockChain:
             new_finalized_blocks = [b for b in to_finalize if b.hash() not in finalized_hashes]
             self.finalized_chain.extend(new_finalized_blocks)
 
-            # update the blocks_dict to contain only the finalized chain and its direct descendants
+            # remove finalized blocks from the not finalized blocks
             last_finalized = self.finalized_chain[-1]
             last_finalized_hash = last_finalized.hash()
 
             # get all reachable descendants of the last finalized block
             reachable_blocks = self.get_descendants(last_finalized_hash)
-            self.blocks_dict = {b.hash(): b for b in reachable_blocks}
+            self.not_finalized_blocks = {b.hash(): b for b in reachable_blocks}
 
             print(f"Fork stabilized by finalizing up to {to_finalize[-1]}")
 
@@ -119,7 +115,7 @@ class BlockChain:
         Retrieves all descendants of a block in the blockchain
         """
         visited = []
-        to_visit = [self.blocks_dict[start_hash]] if start_hash in self.blocks_dict else []
+        to_visit = [self.not_finalized_blocks[start_hash]] if start_hash in self.not_finalized_blocks else []
         while to_visit:
             current = to_visit.pop()
             visited.append(current)
@@ -134,7 +130,7 @@ class BlockChain:
         """
         with self.lock:
             forks = []
-            leaf_blocks = [block for block in self.blocks_dict.values() if not block.children] 
+            leaf_blocks = [block for block in self.not_finalized_blocks.values() if not block.children] 
             for leaf in leaf_blocks:
                 fork = []
                 current = leaf
@@ -142,7 +138,7 @@ class BlockChain:
                     fork.append(current)
                     if current.genesis:
                         break  # stop at the genesis block
-                    current = self.blocks_dict.get(current.previous_hash, None)
+                    current = self.not_finalized_blocks.get(current.previous_hash, None)
                 forks.append(fork[::-1]) # reverse to chronological order
 
             return forks
@@ -153,7 +149,7 @@ class BlockChain:
         :return: A list of non-notarized blocks
         """
         with self.lock:
-            non_notarized = [block for block in self.blocks_dict.values() if not self.check_notarization(block)]
+            non_notarized = [block for block in self.not_finalized_blocks.values() if not self.check_notarization(block)]
             return non_notarized
 
     def length(self):
@@ -176,9 +172,9 @@ class BlockChain:
         String representation of both the blockchain and the finalized chain
         :return: The string representation of the blockchain and the finalized chain
         """
-        blocks_repr = sorted([b.epoch for b in self.blocks_dict.values()])[1:]
+        blocks_repr = sorted([b.epoch for b in self.not_finalized_blocks.values()])[1:]
         chain_repr = parse_chain([str(b) for b in self.finalized_chain], "Finalized Blockchain")
         forks = self.get_forks()
         forks_repr = "\n\t".join(parse_chain([str(b) for b in fork], "Fork") for fork in forks) if len(forks) > 1 else "No forks"
         non_notarized = self.get_non_notarized_blocks()
-        return f"\nPending Blocks:{blocks_repr}\n{chain_repr}\nNon-Notarized blocks: {non_notarized}\n\t{forks_repr}\n"
+        return f"\Not Finalized Blocks:{blocks_repr}\n{chain_repr}\nNon-Notarized blocks: {non_notarized}\n\t{forks_repr}\n"
