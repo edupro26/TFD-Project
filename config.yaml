@@ -1,4 +1,4 @@
-epoch_duration: 8
+epoch_duration: 6
 nodes:
 - id: 0
   ip: 127.0.0.1
@@ -15,5 +15,5 @@ nodes:
 - id: 4
   ip: 127.0.0.1
   port: 8004
-seed: '42'
+seed: 42
 wait_for: 5

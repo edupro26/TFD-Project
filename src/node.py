@@ -29,7 +29,7 @@ class Node:
         self.port = port
         self.peers = peers
         self.epoch_duration = epoch_duration
-        self.random = random.Random(seed)
+        self.seed = seed
         self.start_time = start_time
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.peer_sockets = {}
@@ -238,7 +238,8 @@ class Node:
         """
         Elects the leader of the current epoch
         """
-        self.current_leader = self.random.randint(0, len(self.peers))
+        random.seed(self.seed + self.current_epoch)
+        self.current_leader = random.randint(0, len(self.peers))
 
     def wait_start_time(self):
         """
