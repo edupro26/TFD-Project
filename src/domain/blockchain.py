@@ -1,6 +1,5 @@
-import queue
-
 from domain.block import Block
+from utils.utils import parse_chain
 
 
 class BlockChain:
@@ -35,21 +34,20 @@ class BlockChain:
         three consecutive notarized blocks with consecutive epochs.
         If so, it finalizes the second block and all its previous blocks
         """
-        if len(self.chain) >= 3:
-            for i in range(1, self.length() - 1):
-                previous = self.chain[i - 1]
-                current = self.chain[i]
-                next = self.chain[i + 1]
+        if len(self.chain) < 3:
+            return  # not enough blocks
 
-                blocks = [previous, current, next]
-                epochs = [block.epoch for block in blocks]
-                all_notarized = all(self.check_notarization(i) for i in blocks)
-                all_consecutive = all(epochs[i] + 1 == epochs[i + 1] for i in range(len(epochs) - 1))
+        for i in range(0, self.length()):
+            blocks = self.chain[i:i + 3]
+            if len(blocks) < 3:
+                break
+            epochs = [block.epoch for block in blocks]
+            all_notarized = all(self.check_notarization(block) for block in blocks)
+            all_consecutive = all(epochs[k] + 1 == epochs[k + 1] for k in range(len(epochs) - 1))
 
-                if all_notarized and all_consecutive:
-                    for j in range(i + 1):
-                        if not self.chain[j].is_finalized:
-                            self.chain[j].is_finalized = True
+            if all_notarized and all_consecutive:
+                for j in range(i + 1):
+                    self.chain[j].is_finalized = True
 
     def check_notarization(self, block: Block) -> bool:
         """
@@ -81,15 +79,7 @@ class BlockChain:
         String representation of both the blockchain and the finalized chain
         :return: the string representation of the blockchain and the finalized chain
         """
-        chain_repr = self.__format_chain(self.chain, "Blockchain")
-        not_notarized = [block.epoch for block in self.chain if not self.check_notarization(block)]
-        finalized_chain = [block for block in self.chain if block.is_finalized]
-        finalized_repr = self.__format_chain(finalized_chain, "Finalized")
-        return f"{chain_repr}\nNot Notarized: {not_notarized}\n{finalized_repr}"
-
-    def __format_chain(self, chain, label):
-        max_blocks = 10
-        few_blocks = len(chain) < max_blocks
-        blocks = [str(b.epoch) for b in chain]
-        blocks_to_show = blocks if few_blocks else ["...", *blocks[-max_blocks+1:]]
-        return f"{label}: {" <- ".join(blocks_to_show)}"
+        chain_repr = parse_chain([str(b) for b in self.chain], "Blockchain")
+        finalized_chain = [str(block) for block in self.chain if block.is_finalized]
+        finalized_repr = parse_chain(finalized_chain, "Finalized")
+        return f"{chain_repr}\n{finalized_repr}"

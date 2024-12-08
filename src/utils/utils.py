@@ -37,3 +37,10 @@ def get_time(time: str) -> datetime:
 
 def get_time_plus(time: datetime, seconds: int) -> datetime:
     return time + timedelta(seconds=seconds)
+
+def parse_chain(chain, label):
+    max_blocks = 5
+    few_blocks = len(chain) < max_blocks
+    blocks = [str(b) for b in chain]
+    blocks_to_show = blocks if few_blocks else ["...", *blocks[-max_blocks+1:]]
+    return f"{label}: {" <- ".join(blocks_to_show)}"

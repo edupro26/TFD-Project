@@ -40,7 +40,7 @@ class Node:
         self.blockchain = BlockChain(self.id, len(self.peers) + 1) # initialize the blockchain
         self.received_messages = deque(maxlen=200) # avoid processing the same message multiple times
         self.state = State.WAITING
-        self.msg_queue = Queue()
+        # self.msg_queue = Queue()
 
     def start(self):
         """
@@ -121,11 +121,8 @@ class Node:
         
                 data = client_socket.recv(length)
                 if message := Message.deserialize(data):
-                    self.msg_queue.put(message)
+                    self.handle_message(message)
                     # TODO check if in confusion epoch
-                    while self.msg_queue.qsize() > 0:
-                        message = self.msg_queue.get()
-                        self.handle_message(message)
         except EOFError:
             pass
         except socket.error as e:
@@ -206,8 +203,8 @@ class Node:
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
             time.sleep(self.epoch_duration - elapsed_time)
-            self.blockchain.update_finalization()
             self.current_epoch += 1
+            self.blockchain.update_finalization()
 
             print(f"Leader: Node {self.current_leader}")
             print(self.blockchain)

@@ -28,7 +28,7 @@ class Block:
         String representation of the block
         :return: string representation of the block
         """
-        return f"Block(epoch={self.epoch}, length={self.length})"
+        return f"[{self.epoch}]"
     
     @property
     def genesis(self) -> bool:
