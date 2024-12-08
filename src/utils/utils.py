@@ -9,17 +9,6 @@ def load_config(path: str) -> dict:
     """
     with open(path, 'r') as file:
         return yaml.safe_load(file)
-    
-def set_config(path: str, config: dict, to_add: dict):
-    """
-    Updates the configuration file with the given properties
-    @param path: the path to the configuration file
-    @param config: the configuration to be updated
-    @param to_add: the properties to be added to the configuration
-    """
-    config.update(to_add)
-    with open(path, 'w') as file:
-        yaml.dump(config, file)
 
 def parse_program_args():
     parser = argparse.ArgumentParser(

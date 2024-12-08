@@ -3,8 +3,8 @@ import socket
 import threading
 import time
 import hashlib
+
 from collections import deque
-from queue import Queue
 from domain.blockchain import BlockChain
 from domain.transaction import Transaction
 from domain.block import Block
@@ -140,8 +140,7 @@ class Node:
                     serialized = message.serialize()
                     length = len(serialized).to_bytes(4, byteorder='big')
                     peer_socket.sendall(length + serialized)
-            except socket.error as e:
-                print(f"Error broadcasting to peer")
+            except socket.error:
                 self.peer_sockets[peer].close()
                 self.peer_sockets[peer] = None
 
@@ -253,7 +252,6 @@ class Node:
         print("Starting at", start_time_obj)
         time_to_wait = max(0, int(start_time - current_time)) # ensure time is not negative
         time.sleep(time_to_wait)
-        print("Starting node...")
         self.state = State.RUNNING
 
 if __name__ == "__main__":
@@ -265,7 +263,7 @@ if __name__ == "__main__":
     peers = [(n['ip'], n['port']) for n in nodes if n['id'] != id]
     epoch_duration = config['epoch_duration']
     seed = config['seed']
-    start_time = config['start_time']
+    start_time = load_config("../start_time.yaml")['start_time']
     node = Node(id, host, port, peers, epoch_duration, seed, start_time)
     node.start()
 

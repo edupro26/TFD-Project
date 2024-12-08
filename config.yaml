@@ -16,5 +16,4 @@ nodes:
   ip: 127.0.0.1
   port: 8004
 seed: '42'
-start_time: 00:36:38
 wait_for: 5

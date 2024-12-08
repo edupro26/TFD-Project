@@ -8,8 +8,8 @@ if __name__ == "__main__":
 
     wait_for = config['wait_for']
     wait_for_time = get_time_plus(datetime.now(), wait_for)
-
-    set_config("../config.yaml", config, {"start_time": wait_for_time.strftime('%H:%M:%S')})
+    with open('../start_time.yaml', 'w') as file:
+        yaml.dump({"start_time": wait_for_time.strftime('%H:%M:%S')}, file)
 
     print("Wait time set to", wait_for_time)
 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
             "node.py",
             "--id", str(node['id']),
         ]
-        node_title = f"Node {node['ip']}:{node['port']}"
+        node_title = f"Node {node['id']}"
         if sys.platform == "win32":
             subprocess.Popen(["start", "cmd", "/K", f"title {node_title} &&"] + command, shell=True)
         elif sys.platform == "darwin":
