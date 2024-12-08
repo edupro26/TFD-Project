@@ -1,4 +1,4 @@
-# Distributed Fault Tolerance | Project - Phase 1 | 2024/2025
+# Distributed Fault Tolerance | Project - Phase 2 | 2024/2025
 
 ### Blockchain implementation following a Streamlet consensus algorithm
 
@@ -17,65 +17,43 @@ Group 12:
 
 ## Overview
 
-This repository contains the code for the first phase of a blockchain implementation
-following a Streamlet consensus algorithm. This protocol operates under partial synchrony, 
-tolerating faults and node crashes without compromising the blockchain’s integrity. It 
-allows nodes to propose, vote, and finalize blocks in the blockchain, ensuring that the
-blockchain remains consistent and synchronized across all nodes.
-
-### Functionalities
-
-- **P2P communication**
-- **Propose-Vote**
-- **Echoing**
-- **Block Notarization**
-- **Blockchain Finalization**
-- **Fault Tolerance**
-
-Next steps for phase 2 include, implementing better fault tolerance mechanisms to deal with
-delaying of nodes, lost epochs and node crashes.
+This repository contains the code of a blockchain implementation
+following a Streamlet consensus algorithm.
 
 ### Source code organization
 
 - `domain`: This directory contains data strutctures used to maintain the blockchain
 - `utils`: This directory contains utility functions and scripts
-- `workload.py`: Script that simulates a workload of clients submitting transactions
 - `node.py`: Node class that represents a node in the network
-- `main.py`: Main script that launches the blockchain
+- `main.py`: Main script that lauches the nodes
 
-**Note**: In the `docs` directory, you can find more documentation.
+### Functionalities not implemented
+
+- Crash recovery capabilities
+
 
 ## Usage
 
-**Note**: We recommend you to have Python 3.10 or higher installed.
+**Note**: You should have Python 3.12 or higher installed.
 
 To run the blockchain, you need to execute the `main.py` script: (Found in the `src` folder)
 
 ```python main.py```
 
-This script will ask you for a number of nodes to create and an epoch duration in seconds. 
-After that, it will start the nodes, each in a separate terminal, and run a workload
-simulating clients submitting transactions to the network. </br>
+This script will read the configuration file `config.yaml` and set a start time
+to lauch the nodes each in a separate terminal. 
+
+When it hits the start time, the nodes will initiate the protocol.
+
 Then, you can look at the node terminals to see the blockchain being built and finalized.
 
 An execution example is shown below:
 
 ```
 $ python main.py
-Enter the number of nodes: 5
-Enter the epoch duration: 2
-Nodes started
-
-Running workload...
+Configuration file loaded
+Start time set to 2024-12-08 19:51:11.368839
+Node 0 started on terminal 127.0.0.1:8000
+Node 1 started on terminal 127.0.0.1:8001
+Node 2 started on terminal 127.0.0.1:8002
 ```
-
-If you wish, it is also possible to run each node separately. To do so, you can run
-the following command to start a node: (this command only starts one node)
-
-```python node.py --id <id> --epoch-duration <epoch-duration> --port <port> --peers <peers>```
-
-After all the nodes are up, you can then start the workload by running:
-
-```python workload.py --base-port <base-port> --num-nodes <num-nodes>```
-
-**Note**: Keep in mind that all scripts must be executed in diferent terminals.
