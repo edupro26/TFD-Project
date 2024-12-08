@@ -41,4 +41,4 @@ def parse_chain(chain, label):
     few_blocks = len(chain) < max_blocks
     blocks = [str(b) for b in chain]
     blocks_to_show = blocks if few_blocks else ["...", *blocks[-max_blocks+1:]]
-    return f"{label}: {" <- ".join(blocks_to_show)}"
+    return f"{label}: {" <- ".join(blocks_to_show)} ({len(chain)} blocks)"
