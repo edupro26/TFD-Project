@@ -12,7 +12,6 @@ from domain.message import Message, MessageType
 from domain.state import State
 from utils.utils import *
 
-
 class Node:
     def __init__(
         self,
@@ -52,6 +51,8 @@ class Node:
         self.state = State.WAITING
         self.confusion_start = confusion_start
         self.confusion_duration = confusion_duration
+        self.queue = deque()
+        self.running = True
 
     def start(self):
         """
@@ -64,7 +65,7 @@ class Node:
             self.connect_to_peer(peer)
         print(f"Node {self.id} started on {self.host}:{self.port}")
         threading.Thread(target=self.start_server, daemon=True).start()
-
+        
     def stop(self):
         """
         Stops the node
@@ -81,9 +82,11 @@ class Node:
         if self.state == State.RECOVERED:
             print("Initiated node recovery")
             # TODO: crash recovery logic
+
         elif self.state == State.RUNNING:
             threading.Thread(target=self.generate_tx).start()
             threading.Thread(target=self.run_protocol).start()
+            threading.Thread(target=self.process_messages).start()
             while True:
                 try:
                     client_socket, address = self.server_socket.accept()
@@ -91,9 +94,27 @@ class Node:
                 except socket.error:
                     break
 
+    def process_messages(self):
+        """
+        Processes messages from the queue
+        During the confusion period, buffer messages without processing them
+        After the confusion period, process buffered messages in sequence
+        """
+        while self.running:
+            if len(self.queue) > 0:
+                if self.in_confusion_period():
+                    # buffer messages during the confusion period 
+                    time.sleep(0.1)
+                else:
+                    # process buffered messages after the confusion period
+                    while self.queue:
+                        msg = self.queue.popleft()
+                        self.handle_message(msg)
+
+
     def connect_to_peer(self, peer: tuple[str, int]):
         """
-        Establishes a connection to a single peer and adds it to the connection pool.
+        Establishes a connection to a single peer and adds it to the connection pool
         """
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -105,17 +126,17 @@ class Node:
 
     def generate_tx(self):
         """
-        Simulates clients submitting transactions to this node.
+        Simulates clients submitting transactions to this node
         """
         while True:
             sender = random.randint(1, 1000)
             receiver = random.randint(1, 1000)
             amount = random.uniform(0.01, 1000)
-            # Ensure sender and receiver are different
+            # ensure sender and receiver are different
             while receiver == sender:
                 receiver = random.randint(1, 1000)
 
-            # Generate a unique tx ID
+            # generate a unique tx id
             nonce = random.randint(0, 1000000)
             id = hashlib.sha1(f"{sender}{nonce}".encode()).hexdigest()
 
@@ -134,8 +155,7 @@ class Node:
         
                 data = client_socket.recv(length)
                 if message := Message.deserialize(data):
-                    self.handle_message(message)
-                    # TODO check if in confusion epoch
+                    self.queue.append(message)
         except EOFError:
             pass
         except socket.error as e:
@@ -192,8 +212,7 @@ class Node:
         # check if block extends the longest notarized chain, otherwise ignore it
         if block.length > self.blockchain.length():
             self.blockchain.add_block(block)
-            # vote for the block
-            vote_message = Message(MessageType.VOTE, block, self.id)
+            vote_message = Message(MessageType.VOTE, block, self.id) # vote for the block
             self.urb_broadcast(vote_message)
 
     def handle_block_vote(self, message: Message):
@@ -201,7 +220,8 @@ class Node:
         Logic for handling a vote message
         @param message: the message containing the vote
         """
-        self.blockchain.add_vote(message.content, message.sender)
+        block = message.content
+        self.blockchain.add_vote(block, message.sender)
 
     def run_protocol(self):
         """
@@ -213,13 +233,16 @@ class Node:
 
             print(f"------------------- Epoch {self.current_epoch} -------------------")
             
-            self.elect_leader() # elect the new leader of the epoch
+            if self.in_confusion_period():
+                print("############# IN CONFUSION PERIOD #############")
+            
+            self.current_leader = self.elect_leader() # elect the new leader of the epoch
             if self.current_leader == self.id: # if this node is the leader
                 self.run_leader_phase()
 
             # wait for the epoch duration
             elapsed_time = time.time() - start_time
-            time.sleep(self.epoch_duration - elapsed_time)
+            time.sleep(max(0, self.epoch_duration - elapsed_time))
             self.current_epoch += 1
             self.blockchain.update_finalization()
 
@@ -228,41 +251,45 @@ class Node:
 
     def run_leader_phase(self):
         """
-        Runs the leader phase by proposing a new block and broadcasting it.
+        Runs the leader phase by proposing a new block and broadcasting it
+        During confusion periods, blocks are proposed independently of notarization
         """
-        # Find the head of the longest notarized chain
-        longest_chain = max(
+       
+        # find the head of the longest notarized chain
+        parent_block = max(
             self.blockchain.blocks_tree.values(),
             key=lambda block: block.length if self.blockchain.check_notarization(block) else 0,
             default=None
         )
-        if longest_chain is None:
+        if parent_block is None:
             print("No notarized chain found.")
             return
 
-        # Propose a new block
-        previous_hash = longest_chain.hash()
+        # propose new block
+        previous_hash = parent_block.hash()
         new_block = Block(
             previous_hash=previous_hash,
             epoch=self.current_epoch,
-            length=longest_chain.length + 1,
+            length=parent_block.length + 1,
             transactions=self.pending_tx.copy()
         )
-        # Clear the pending transactions
+        # clear the pending transactions
         self.pending_tx.clear()
 
-        # Broadcast the proposed block
+        # broadcast the proposed block
         print(f"Node {self.id} proposing block: {new_block}")
         propose_message = Message(MessageType.PROPOSE, new_block, self.id)
         self.urb_broadcast(propose_message)
 
-
-    def elect_leader(self):
+    def elect_leader(self) -> int:
         """
         Elects the leader of the current epoch
         """
-        random.seed(self.seed + self.current_epoch)
-        self.current_leader = random.randint(0, len(self.peers))
+        if self.in_confusion_period():
+            return self.current_epoch % (len(self.peers) + 1)
+        else:
+            random.seed(self.seed + self.current_epoch)
+            return random.randint(0, len(self.peers))
 
     def wait_start_time(self):
         """
@@ -272,7 +299,7 @@ class Node:
         start_time = start_time_obj.timestamp()
         current_time = time.time()
 
-        # Detect if it is a recovery after a crash
+        # detect if it is a recovery after a crash
         if current_time > start_time:
             self.state = State.RECOVERED
             return
@@ -281,6 +308,11 @@ class Node:
         time_to_wait = max(0, int(start_time - current_time)) # ensure time is not negative
         time.sleep(time_to_wait)
         self.state = State.RUNNING
+
+    def in_confusion_period(self) -> bool:
+        if self.confusion_duration == 0:
+            return False
+        return self.confusion_start <= self.current_epoch < self.confusion_start + self.confusion_duration
 
 if __name__ == "__main__":
     args = parse_program_args()
