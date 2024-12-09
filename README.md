@@ -22,28 +22,26 @@ following a Streamlet consensus algorithm.
 
 ### Source code organization
 
-- `domain`: This directory contains data strutctures used to maintain the blockchain
+- `domain`: This directory contains data structures used to maintain the blockchain
 - `utils`: This directory contains utility functions and scripts
 - `node.py`: Node class that represents a node in the network
-- `main.py`: Main script that lauches the nodes
+- `main.py`: Main script that launches the nodes
 
 ### Limitations
 
-Your implemetation does not write the blockchain to disk so, 
-in the event of a crash, when the node is recovered despite being able to catch
-up to the other nodes, it will not have the blocks that it lost will being down.
+This implementation does not write the blockchain to disk so, in the event of a crash, when the node is recovered, despite being able to catch up to the other nodes, it will not have the blocks prior to the crash.
+This could be further improved by writing the blockchain to disk, load it on startup and ask for the missing blocks to the other nodes from the epochs while it was down.
 
 
 ## Usage
 
 **Note**: You should have Python 3.12 or higher installed.
 
-To run the blockchain, you need to execute the `main.py` script: (Found in the `src` folder)
+To run the blockchain, you need to execute the `main.py` script: (in the `src` folder)
 
 ```python main.py```
 
-This script will read the configuration file `config.yaml` and set a start time
-to lauch the nodes each in a separate terminal. 
+This script will read the configuration file `config.yaml`, automatically set a time for the nodes to start and launch the nodes each in a separate terminal window.
 
 When it hits the start time, the nodes will initiate the protocol.
 
