@@ -29,9 +29,10 @@ following a Streamlet consensus algorithm.
 
 ### Limitations
 
-This implementation does not write the blockchain to disk so, in the event of a crash, when the node is recovered, despite being able to catch up to the other nodes, it will not have the blocks prior to the crash.
+1. This implementation does not write the blockchain to disk so, in the event of a crash, when the node is recovered, despite being able to catch up to the other nodes, it will not have the blocks prior to the crash.
 This could be further improved by writing the blockchain to disk, load it on startup and ask for the missing blocks to the other nodes from the epochs while it was down.
 
+2. The implementation does not guarantee that, when not in a confusion period, messages from one epoch are delivered in that exact epoch, which can cause minor synchronization issues.
 
 ## Usage
 

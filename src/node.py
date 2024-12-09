@@ -79,10 +79,6 @@ class Node:
         """
         Starts the server socket and listens for incoming connections
         """
-        if self.state == State.RECOVERED:
-            print("Initiated node recovery")
-            self.current_epoch = self.deduce_current_epoch()
-
         threading.Thread(target=self.generate_tx).start()
         threading.Thread(target=self.run_protocol).start()
         threading.Thread(target=self.process_messages).start()
@@ -110,7 +106,6 @@ class Node:
                     while self.queue:
                         msg = self.queue.popleft()
                         self.handle_message(msg)
-
 
     def connect_to_peer(self, peer: tuple[str, int]):
         """
@@ -239,10 +234,13 @@ class Node:
         """
         Main logic of the node containing the protocol
         """
+
+        if self.state == State.RECOVERED:
+            self.syncronize_epoch()
+
         print(f"Node {self.id} running protocol")
         while True:
             start_time = time.time()
-            self.syncronize_epoch()
 
             print(f"------------------- Epoch {self.current_epoch} -------------------")
             
@@ -272,7 +270,7 @@ class Node:
        
         # find the head of the longest notarized chain
         parent_block = max(
-            self.blockchain.not_finalized_blocks.values(),
+            self.blockchain.non_finalized_blocks.values(),
             key=lambda block: block.length if self.blockchain.check_notarization(block) else 0,
             default=None
         )
@@ -338,12 +336,17 @@ class Node:
         return int((current_time - start_time) / self.epoch_duration) + 1
     
     def syncronize_epoch(self):
-        next_epoch = self.deduce_current_epoch()
+        """
+        Synchronizes recovered nodes with the current epoch
+        """
         # calculate the time to wait until the next epoch
-        current_time = time.time()
+        next_epoch = self.deduce_current_epoch()
         start_time = get_time(self.start_time).timestamp()
-        time_to_wait = max(0, int(start_time + next_epoch * self.epoch_duration - current_time))
+        epoch_start_time = start_time + next_epoch * self.epoch_duration
+        current_time = time.time()
+        time_to_wait = max(0, epoch_start_time - current_time)
         time.sleep(time_to_wait)
+        self.current_epoch = next_epoch + 1
 
     def next_state(self) -> State:
         """
