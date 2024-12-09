@@ -52,7 +52,6 @@ class Node:
         self.confusion_start = confusion_start
         self.confusion_duration = confusion_duration
         self.queue = deque()
-        self.running = True
 
     def start(self):
         """
@@ -96,7 +95,7 @@ class Node:
         During the confusion period, buffer messages without processing them
         After the confusion period, process buffered messages in sequence
         """
-        while self.running:
+        while True:
             if len(self.queue) > 0:
                 if self.in_confusion_period():
                     # buffer messages during the confusion period 
@@ -105,7 +104,11 @@ class Node:
                     # process buffered messages after the confusion period
                     while self.queue:
                         msg = self.queue.popleft()
-                        self.handle_message(msg)
+                        if self.current_epoch >= msg.epoch:
+                            self.handle_message(msg)
+                        else:
+                            # ignore messages from future epochs to ensure synchronization
+                            self.queue.appendleft(msg) 
 
     def connect_to_peer(self, peer: tuple[str, int]):
         """
@@ -125,7 +128,7 @@ class Node:
         """
         Tries to reconnect to all peers
         """
-        while self.running:
+        while True:
             for peer in self.peers:
                 if self.peer_sockets[peer] is None:
                     self.connect_to_peer(peer)
@@ -204,7 +207,7 @@ class Node:
         else:
             if message.hash() not in self.received_messages:
                 self.received_messages.append(message.hash())
-                self.urb_broadcast(Message(MessageType.ECHO, message, self.id))
+                self.urb_broadcast(Message(MessageType.ECHO, message, self.id, self.current_epoch))
                 if message.type == MessageType.PROPOSE:
                     self.handle_block_proposal(message)
                 elif message.type == MessageType.VOTE:
@@ -219,7 +222,7 @@ class Node:
         # check if block extends the longest notarized chain, otherwise ignore it
         if block.length > self.blockchain.length():
             self.blockchain.add_block(block)
-            vote_message = Message(MessageType.VOTE, block, self.id) # vote for the block
+            vote_message = Message(MessageType.VOTE, block, self.id, self.current_epoch) # vote for the block
             self.urb_broadcast(vote_message)
 
     def handle_block_vote(self, message: Message):
@@ -291,7 +294,7 @@ class Node:
 
         # broadcast the proposed block
         print(f"Node {self.id} proposing block: {new_block}")
-        propose_message = Message(MessageType.PROPOSE, new_block, self.id)
+        propose_message = Message(MessageType.PROPOSE, new_block, self.id, self.current_epoch)
         self.urb_broadcast(propose_message)
 
     def elect_leader(self) -> int:

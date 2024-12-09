@@ -20,7 +20,7 @@ class MessageType(Enum):
         return self.name
 
 class Message:
-    def __init__(self, type: MessageType, content: 'Message' | Block, sender: int):
+    def __init__(self, type: MessageType, content: 'Message' | Block, sender: int, epoch: int):
         """
         @param type: type of the message
         @param content: content of the message
@@ -29,6 +29,7 @@ class Message:
         self.type = type
         self.content = content
         self.sender = sender
+        self.epoch = epoch
 
     def serialize(self) -> bytes:
         """

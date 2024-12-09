@@ -29,10 +29,7 @@ following a Streamlet consensus algorithm.
 
 ### Limitations
 
-1. This implementation does not write the blockchain to disk so, in the event of a crash, when the node is recovered, despite being able to catch up to the other nodes, it will not have the blocks prior to the crash.
-This could be further improved by writing the blockchain to disk, load it on startup and ask for the missing blocks to the other nodes from the epochs while it was down.
-
-2. The implementation does not guarantee that, when not in a confusion period, messages from one epoch are delivered in that exact epoch, which can cause minor synchronization issues.
+This implementation does not write the blockchain to disk so, in the event of a crash, when the node is recovered, despite being able to catch up to the other nodes, it will not have the blocks prior to the crash. This could be further improved by writing the blockchain to disk, load it on startup and ask for the missing blocks to the other nodes from the epochs while it was down.
 
 ## Usage
 
@@ -63,5 +60,7 @@ If you choose to stop a node (crash simulation), you can restart it by running:
 
 ```python node.py --id <id>```
 
-**Note:** There needs to be always a majority of nodes 
-running for the protocol to function properly. 
+### Notes:
+
+- There needs to be always a majority of nodes running for the protocol to function properly.
+- Synchronization of nodes is guaranteed by the message processing thread, which only processes messages from the current or previous epochs. This means that a message from a future epoch will never be delivered in the current epoch, which ensures synchronization between nodes if their epochs are not perfectly synchronized.
