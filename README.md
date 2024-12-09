@@ -31,9 +31,13 @@ following a Streamlet consensus algorithm.
 
 This implementation does not write the blockchain to disk so, in the event of a crash, when the node is recovered, despite being able to catch up to the other nodes, it will not have the blocks prior to the crash. This could be further improved by writing the blockchain to disk, load it on startup and ask for the missing blocks to the other nodes from the epochs while it was down.
 
-## Usage
 
-**Note**: You should have Python 3.12 or higher installed.
+### Requirements
+
+- Python 3.12 or higher installed.
+- PyYAML (`pip install pyyaml`)
+
+## Usage
 
 To run the blockchain, you need to execute the `main.py` script: (in the `src` folder)
 
