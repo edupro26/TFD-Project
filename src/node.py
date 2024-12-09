@@ -172,7 +172,7 @@ class Node:
                     self.queue.append(message)
         except EOFError:
             pass
-        except socket.error as e:
+        except socket.error:
             print(f"Error receiving data from {client_socket.getpeername()}")
         finally:
             client_socket.close()
@@ -350,7 +350,7 @@ class Node:
         Determines the next state of the node
         """
         if self.state == State.RECOVERED:
-            # check if has seen 3 consecutive notarized blocks
+            # check if it has seen 3 consecutive notarized blocks
             notarized = len(self.blockchain.get_notarized_blocks())
             if notarized >= 3:
                 print("Recovered node has seen 3 notarized blocks, starting protocol normally...")

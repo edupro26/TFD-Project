@@ -27,9 +27,11 @@ following a Streamlet consensus algorithm.
 - `node.py`: Node class that represents a node in the network
 - `main.py`: Main script that lauches the nodes
 
-### Functionalities not implemented
+### Limitations
 
-- Crash recovery capabilities
+Your implemetation does not write the blockchain to disk so, 
+in the event of a crash, when the node is recovered despite being able to catch
+up to the other nodes, it will not have the blocks that it lost will being down.
 
 
 ## Usage
@@ -57,3 +59,10 @@ Node 0 started on terminal 127.0.0.1:8000
 Node 1 started on terminal 127.0.0.1:8001
 Node 2 started on terminal 127.0.0.1:8002
 ```
+
+If you choose to stop a node (crash simulation), you can restart it by running:
+
+```python node.py --id <id>```
+
+**Note:** There needs to be always a majority of nodes 
+running for the protocol to function properly. 
